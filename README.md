@@ -2,7 +2,7 @@
 
 # DecisionAct
 
-### Every Action Is a Decision:<br>Decision-Model-Driven Execution for Structured Agent Workflows
+### Every Action Is a Decision <br>Decision-Model-Driven Execution for Structured Agent Workflows
 
 ## Available in v0.1.0 (Latest version)
 
@@ -16,7 +16,7 @@
 
 ## Coming in future versions
 
-- Single-agent, multi-intent workflows.
+- Single-agent-multi-intent workflows.
 - Multi-agent workflows.
 
 ## Examples
