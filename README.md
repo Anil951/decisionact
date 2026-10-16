@@ -1,7 +1,6 @@
 ![DecisionAct — Every Action Is a Decision](https://raw.githubusercontent.com/Anil951/decisionact/main/assets/decisionact_white_banner.png)
 
-
-### &#9671;&gt; **Every Action Is a Decision**<br>Decision-Model-Driven Execution for Structured Agent Workflows
+**Every Action Is a Decision**<br>Decision-Model-Driven Execution for Structured Agent Workflows
 
 
 ## Installation
