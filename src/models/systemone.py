@@ -17,7 +17,7 @@ class SystemOneModel(DecisionModel):
         try:
             import typesafe_sdk
         except ImportError as e:  # only needed when this model is used
-            raise ImportError("SystemOneModel needs the TypeSafe SDK: pip install decisionact[jev]") from e
+            raise ImportError("SystemOneModel needs the TypeSafe SDK: pip install typesafe-sdk") from e
         self._sdk = typesafe_sdk
         self._client = typesafe_sdk.TypeSafeClient(api_key=api_key, model=model,
                                                    base_url=base_url, timeout=timeout)
