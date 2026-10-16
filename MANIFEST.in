@@ -1,0 +1,2 @@
+include README.md LICENSE .env.example
+recursive-include examples *.py
