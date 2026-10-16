@@ -37,8 +37,6 @@ uv add decisionact
 [Read the documentation](https://anil951.github.io/decisionact/)
 for the quickstart, agent-building guides, execution flow, and API reference.
 
-[Browse the Markdown guides on GitHub](https://github.com/Anil951/decisionact/blob/main/docs/README.md).
-
 
 ## License
 
