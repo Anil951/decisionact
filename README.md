@@ -1,8 +1,22 @@
 ![DecisionAct — Every Action Is a Decision](https://raw.githubusercontent.com/Anil951/decisionact/main/assets/decisionact_white_banner.png)
 
-# DecisionAct
 
-### Every Action Is a Decision <br>Decision-Model-Driven Execution for Structured Agent Workflows
+### &#9671;&gt; **Every Action Is a Decision**<br>Decision-Model-Driven Execution for Structured Agent Workflows
+
+
+## Installation
+
+Using pip:
+
+```bash
+pip install decisionact
+```
+
+Using uv inside a project:
+
+```bash
+uv add decisionact
+```
 
 ## Available in v0.1.0 (Latest version)
 
@@ -19,11 +33,14 @@
 - Single-agent-multi-intent workflows.
 - Multi-agent workflows.
 
-## Examples
+## Documentation
 
-The [`examples/`](https://github.com/Anil951/decisionact/tree/main/examples) folder
-contains order-support and flight-desk agents built using DecisionAct.
+[Read the documentation](https://anil951.github.io/decisionact/)
+for the quickstart, agent-building guides, execution flow, and API reference.
+
+[Browse the Markdown guides on GitHub](https://github.com/Anil951/decisionact/blob/main/docs/README.md).
+
 
 ## License
 
-[MIT](LICENSE) ? AnilKumarBorige
+[MIT](LICENSE) - AnilKumarBorige

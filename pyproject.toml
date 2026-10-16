@@ -23,6 +23,7 @@ classifiers = [
 [project.urls]
 Repository = "https://github.com/Anil951/decisionact"
 Issues = "https://github.com/Anil951/decisionact/issues"
+Documentation = "https://anil951.github.io/decisionact/"
 
 [project.optional-dependencies]
 examples = ["python-dotenv>=1,<2"]

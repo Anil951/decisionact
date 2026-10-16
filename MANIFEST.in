@@ -1,2 +1,4 @@
 include README.md LICENSE .env.example
 recursive-include examples *.py
+include mkdocs.yml requirements-docs.txt
+recursive-include docs *.md *.css *.js *.png *.svg
