@@ -1,6 +1,6 @@
 # Execution flow
 
-[Documentation](README.md) / Execution flow
+[Documentation](../README.md) / Execution flow
 
 This page traces the current implementation. Your application calls the public
 methods; the framework calls the internal helpers. Internal names below explain
@@ -8,11 +8,34 @@ the source and are not a stable API to call from applications.
 
 ## A normal turn
 
-Your application starts with:
+The following independent script shows the public entry point. Set
+`TYPESAFE_API_KEY` before running it; no tutorial definitions are imported:
 
 ```python
-result = agent.turn("Where is A1234?", session_id="customer-1")
+import os
+from decisionact import Agent, Intent, Outcome
+from decisionact.models import SystemOneModel
+
+
+if __name__ == "__main__":
+    agent = Agent(
+        tools=[],
+        intents={
+            "greeting": Intent(desc="The user says hello", outcomes=["welcome"]),
+            "other": Intent(desc="Requests unrelated to greetings", outcomes=["help"]),
+        },
+        outcomes={
+            "welcome": Outcome(desc="A greeting was received", reply="Hello!"),
+            "help": Outcome(desc="The request is outside this demo", reply="Try saying hello."),
+        },
+        model=SystemOneModel(api_key=os.getenv("TYPESAFE_API_KEY")),
+    )
+    result = agent.turn(message="Hello", session_id="flow-demo")
+    print(result.reply)
 ```
+
+With successful decisions, this replies `Hello!`. The example has no tools, so it
+skips the tool loop. For any configured agent, the full turn path is: 
 
 ```text
 Application: agent.turn(message, session_id)

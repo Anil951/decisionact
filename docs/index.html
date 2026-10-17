@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Overview - DecisionAct documentation. Decision-model-driven execution for structured Python agent workflows.">
+  <meta name="theme-color" content="#f7f7f0">
+  <title>Overview &middot; DecisionAct</title>
+  <script>
+    // Recover a direct GitHub Pages route before BrowserRouter reads the URL.
+    const requestedRoute = new URLSearchParams(location.search).get('__docs_route');
+    if (requestedRoute !== null) {
+      const base = new URL('%BASE_URL%', location.origin);
+      const target = new URL(requestedRoute, base);
+      if (target.origin === base.origin && target.pathname.startsWith(base.pathname)) {
+        history.replaceState(null, '', target.pathname + target.search + target.hash);
+      }
+    }
+  </script>
+  <script>try{const t=localStorage.getItem('decisionact-theme');document.documentElement.dataset.theme=t==='light'||t==='dark'?t:matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}catch(_){document.documentElement.dataset.theme=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}</script>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+</head>
+<body>
+  <div id="root"></div>
+  <noscript>Enable JavaScript to view the documentation, or <a href="https://github.com/Anil951/decisionact/tree/main/docs">read the Markdown guides on GitHub</a>.</noscript>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+</html>

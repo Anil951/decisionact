@@ -1,0 +1,131 @@
+[
+  {
+    "slug": "index",
+    "title": "Overview",
+    "group": "Get started",
+    "icon": "book"
+  },
+  {
+    "slug": "installation",
+    "title": "Installation",
+    "group": "Get started",
+    "icon": "code",
+    "file": "content/installation.md"
+  },
+  {
+    "slug": "quickstart",
+    "title": "Quickstart",
+    "group": "Get started",
+    "icon": "code",
+    "file": "content/quickstart.md"
+  },
+  {
+    "slug": "tools",
+    "title": "Tools",
+    "group": "Core concepts",
+    "icon": "layers",
+    "file": "content/tools.md"
+  },
+  {
+    "slug": "parameters",
+    "title": "Parameters",
+    "group": "Core concepts",
+    "icon": "code",
+    "file": "content/parameters.md"
+  },
+  {
+    "slug": "intents",
+    "title": "Intents",
+    "group": "Core concepts",
+    "icon": "flow",
+    "file": "content/intents.md"
+  },
+  {
+    "slug": "outcomes",
+    "title": "Outcomes",
+    "group": "Core concepts",
+    "icon": "book",
+    "file": "content/outcomes.md"
+  },
+  {
+    "slug": "models",
+    "title": "Decision models",
+    "group": "Core concepts",
+    "icon": "model",
+    "file": "content/models.md",
+    "sections": [
+      {
+        "title": "Jev",
+        "anchor": "jev"
+      },
+      {
+        "title": "Cloudflare Clef",
+        "anchor": "cloudflare-clef"
+      }
+    ]
+  },
+  {
+    "slug": "memory-and-checkpoints",
+    "title": "Memory and checkpoints",
+    "group": "Core concepts",
+    "icon": "memory",
+    "file": "content/memory-and-checkpoints.md"
+  },
+  {
+    "slug": "middleware-and-approval",
+    "title": "Middleware and human approval",
+    "group": "Core concepts",
+    "icon": "approval",
+    "file": "content/middleware-and-approval.md"
+  },
+  {
+    "slug": "execution-flow",
+    "title": "Execution flow",
+    "group": "Core concepts",
+    "icon": "flow",
+    "file": "content/execution-flow.md"
+  },
+  {
+    "slug": "order-agent",
+    "title": "Order support agent",
+    "group": "Examples",
+    "icon": "examples",
+    "file": "content/order-agent.md"
+  },
+  {
+    "slug": "flight-desk-agent",
+    "title": "Flight desk agent",
+    "group": "Examples",
+    "icon": "examples",
+    "file": "content/flight-desk-agent.md"
+  },
+  {
+    "slug": "api-reference",
+    "title": "API reference",
+    "group": "API reference",
+    "icon": "book",
+    "file": "content/api-reference.md",
+    "sections": [
+      {
+        "title": "Agent",
+        "anchor": "agent"
+      },
+      {
+        "title": "Tools, parameters, intents and outcomes",
+        "anchor": "tools-inputs-intents-and-outcomes"
+      },
+      {
+        "title": "Model adapters",
+        "anchor": "model-adapters"
+      },
+      {
+        "title": "Memory and checkpoints",
+        "anchor": "memory"
+      },
+      {
+        "title": "Middleware and approval",
+        "anchor": "middleware-and-approval"
+      }
+    ]
+  }
+]

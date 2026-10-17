@@ -1,11 +1,11 @@
 # API reference
 
-[Documentation](README.md) / API reference
+[Documentation](../README.md) / API reference
 
 This reference covers the public API in the repository's v0.1.0 implementation.
 Python signatures determine which arguments are required. Examples below are small
 fragments; names such as `agent`, `model`, and `INTENTS` refer to objects built in
-the [quickstart](quickstart.md) or [approval guide](memory-and-approval.md).
+the [quickstart](quickstart.md) or [approval guide](middleware-and-approval.md).
 
 ## Agent
 
@@ -27,7 +27,7 @@ Agent(
 | `outcomes` | Dictionary mapping outcome names to `Outcome` objects. |
 | `model` | A `DecisionModel` instance, such as `SystemOneModel` or `CloudflareModel`. |
 | `memory` | A `Memory` instance; defaults to `NoMemory()`. |
-| `checkpointer` | A `Checkpointer`; defaults to a new `SqliteCheckpointer(":memory:")`. |
+| `checkpointer` | A `Checkpointer`; defaults to a new `SqliteCheckpointer(path=":memory:")`. |
 | `middleware` | Iterable of `Middleware` instances, called in order; defaults to none. |
 | `max_calls` | Maximum tool calls in the tool loop before proceeding to an outcome. |
 | `max_param_tries` | Rejected candidate values per input before asking for an exact value. |
@@ -48,7 +48,7 @@ commands use this method too. A turn is synchronous and may make multiple blocki
 provider requests.
 
 ```python
-result = agent.turn("Where is A1234?", session_id="customer-1")
+result = agent.turn(message="Where is A1234?", session_id="customer-1")
 print(result.reply)
 ```
 
@@ -66,7 +66,7 @@ if that session has no pending approval. Does not append a user message to histo
 ```python
 from decisionact.middleware import approve
 
-result = agent.resume("customer-1", approve())
+result = agent.resume(session_id="customer-1", decision=approve())
 ```
 
 This is for human approval, not missing-input continuation. To supply a missing
@@ -187,9 +187,9 @@ The engine calls these methods automatically. You can also use them directly:
 
 ```python
 choice = model.choice(
-    "The customer asks where an order is",
-    "Which request is this?",
-    {"status": "Order status", "cancel": "Order cancellation"},
+    state="The customer asks where an order is",
+    question="Which request is this?",
+    options={"status": "Order status", "cancel": "Order cancellation"},
     label="request type",
 )
 ```
@@ -321,4 +321,4 @@ and returns `None` for no saved approval. The framework calls this automatically
 - Default in-memory checkpoints and fictional example business data do not survive
   a restart. File-based SQLite persists conversation state, not your tool's business data.
 
-[Back to documentation](README.md)
+[Back to documentation](../README.md)

@@ -1,4 +1,7 @@
 include README.md LICENSE .env.example
 recursive-include examples *.py
-include mkdocs.yml requirements-docs.txt
 recursive-include docs *.md *.css *.js *.png *.svg
+prune docs/node_modules
+prune docs/dist
+prune docs/.vite
+prune docs/.sites-runtime

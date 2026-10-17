@@ -1,6 +1,8 @@
-![DecisionAct - Every Action Is a Decision](assets/decisionact_white_banner.png)
+![DecisionAct - Every Action Is a Decision](../assets/decisionact_white_banner.png)
 
 # DecisionAct documentation
+
+[Preview and maintain the React documentation website](WEBSITE.md).
 
 **Every Action Is a Decision**
 
@@ -12,18 +14,34 @@ These guides describe the v0.1.0 API in this repository. This version supports
 single-agent, single-intent workflows: a message selects one intent, which can
 involve several tool calls. Multi-intent and multi-agent workflows are planned.
 
-## Start here
+## Get started
 
-| Guide | What you will learn |
-| --- | --- |
-| [Quickstart](quickstart.md) | Install DecisionAct and run a small order-status agent. |
-| [Building agents](building-agents.md) | Configure Jev or Clef and define tools, parameters, intents, and replies. |
-| [Memory and approval](memory-and-approval.md) | Add conversation memory, SQLite storage, and human approval. |
-| [Execution flow](execution-flow.md) | Follow the functions called during a turn and its continuation paths. |
-| [API reference](api-reference.md) | Look up signatures, defaults, return values, and exceptions. |
+- [Overview](#decisionact-documentation)
+- [Installation](content/installation.md)
+- [Quickstart](content/quickstart.md)
 
-Read the guides in order to build up one small order agent. Each code block states
-whether it is a complete file or an addition to an earlier example.
+## Core concepts
+
+- [Tools](content/tools.md)
+- [Parameters](content/parameters.md)
+- [Intents](content/intents.md)
+- [Outcomes](content/outcomes.md)
+- [Decision models](content/models.md)
+- [Memory and checkpoints](content/memory-and-checkpoints.md)
+- [Middleware and human approval](content/middleware-and-approval.md)
+- [Execution flow](content/execution-flow.md)
+
+## Examples
+
+- [Order support agent](content/order-agent.md)
+- [Flight desk agent](content/flight-desk-agent.md)
+
+## API reference
+
+- [API reference](content/api-reference.md)
+
+Core concept pages explain one feature at a time with independent examples.
+Quickstart and example pages contain the complete application walkthroughs.
 
 ## Repository examples
 
