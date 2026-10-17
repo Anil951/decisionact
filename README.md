@@ -1,5 +1,5 @@
 <!--![DecisionAct — Every Action Is a Decision](https://raw.githubusercontent.com/Anil951/decisionact/main/assets/decisionact_white_banner.png) -->
-## <i>DecisionAct</i> <br>
+# <i>DecisionAct</i> <br>
 **Every Action Is a Decision**<br>Decision-Model-Driven Execution for Structured Agent Workflows
 
 
