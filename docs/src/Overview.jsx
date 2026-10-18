@@ -17,7 +17,7 @@ function Section({ id, children }) {
 export default function Overview() {
   return <>
     <section className="hero">
-      <div className="eyebrow"><span className="status-dot" />Python agent framework · v0.1.0</div>
+      <div className="eyebrow"><span className="status-dot" />Python agent framework · v0.1.1</div>
       <h1>Every action is a <em>decision.</em></h1>
       <p className="hero-subtitle">Decision-Model-Driven Execution for Structured Agent Workflows</p>
     </section>
@@ -40,7 +40,7 @@ export default function Overview() {
       <div className="guide-grid">{cards.map(([slug, title, icon, text]) => <Link className="guide-card" to={`/${slug}`} key={slug}>
         <div className="card-top"><Icon name={icon} /><Icon name="arrow" /></div><strong>{title}</strong><p>{text}</p>
       </Link>)}</div>
-      <Section id="available-now">Available in v0.1.0 <span className="tag">Latest version</span></Section>
+      <Section id="available-now">Available in v0.1.1 <span className="tag">Latest version</span></Section>
       <p>One agent handles one intent per message. An intent can involve several tool calls, missing-input questions, and approval steps.</p>
       <ul>
         <li>Jev and Cloudflare Clef decision-model adapters.</li>
@@ -52,7 +52,7 @@ export default function Overview() {
       </ul>
       <div className="note"><strong>Decisions are probabilistic. Your tools enforce the rules.</strong><p>Validate business inputs and permissions inside your Python functions. Low confidence can lead to a follow-up question or a rephrasing request. See the <Link to="/api-reference#operational-limits">operational limits</Link> before integrating external actions.</p></div>
       <Section id="coming-next">Room to grow</Section>
-      <p>Future versions are planned to support broader workflows. These capabilities are not included in v0.1.0.</p>
+      <p>Future versions are planned to support broader workflows. These capabilities are not included in v0.1.1.</p>
       <div className="roadmap"><span className="tag">Single-agent, multi-intent</span><span className="tag">Multi-agent workflows</span></div>
     </div>
   </>;

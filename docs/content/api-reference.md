@@ -2,7 +2,7 @@
 
 [Documentation](../README.md) / API reference
 
-This reference covers the public API in the repository's v0.1.0 implementation.
+This reference covers the public API in the repository's v0.1.1 implementation.
 Python signatures determine which arguments are required. Examples below are small
 fragments; names such as `agent`, `model`, and `INTENTS` refer to objects built in
 the [quickstart](quickstart.md) or [approval guide](middleware-and-approval.md).
@@ -312,7 +312,7 @@ and returns `None` for no saved approval. The framework calls this automatically
 
 ## Operational limits
 
-- v0.1.0 handles one intent per message. There are no `multi_intent` or router arguments.
+- v0.1.1 handles one intent per message. There are no `multi_intent` or router arguments.
 - Calls are synchronous. Serialize concurrent turns for the same session.
 - Templates control wording; tools must enforce business rules and permissions.
 - The database is not a transaction over external tool effects. A provider failure

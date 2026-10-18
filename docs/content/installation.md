@@ -43,7 +43,7 @@ uv run python -c "import decisionact; print(decisionact.__version__)"
 ```
 
 Importing the package does not contact a model provider. The installed version
-is printed; the current documented API is v0.1.0.
+is printed; the current documented API is v0.1.1.
 
 ## Configure a decision model
 

@@ -7,7 +7,7 @@ it can end with. For example, a greeting can reply without a tool, while a
 calculation can call a function and use its result.
 
 For a new request, the decision model chooses among your registered intent names
-using their descriptions and the conversation state. v0.1.0 handles one intent per
+using their descriptions and the conversation state. v0.1.1 handles one intent per
 message. That intent may involve several tool calls; multi-intent and multi-agent
 workflows are planned for future versions.
 

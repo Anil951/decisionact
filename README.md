@@ -17,7 +17,7 @@ Using uv inside a project:
 uv add decisionact
 ```
 
-## Available in v0.1.0 (Latest version)
+## Available in v0.1.1 (Latest version)
 
 - Single-agent, single-intent workflows.
 - TypeSafe Jev and Cloudflare Clef support.

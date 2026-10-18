@@ -1,4 +1,4 @@
-include README.md LICENSE .env.example
+include README.md LICENSE CHANGELOG.md .env.example
 recursive-include examples *.py
 recursive-include docs *.md *.css *.js *.png *.svg
 prune docs/node_modules
