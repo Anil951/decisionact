@@ -24,7 +24,7 @@ export default function Overview() {
     <section className="workflow" aria-label="How DecisionAct handles a request">
       <div className="workflow-setup">
         <p className="workflow-label">Configuration</p>
-        <p>Define <Link to="/intents">intents</Link>, <Link to="/tools">tools</Link>, and <Link to="/parameters">params</Link> with descriptions. Add intent context to guide the workflow, and define <Link to="/outcomes">outcomes</Link> with descriptions and reply templates. Use <Link to="/models">decision models</Link> to guide execution.</p>
+        <p>DecisionAct is a Python agent framework for task-focused agents with predefined intents, tools, and outcomes (with reply templates). Define <Link to="/intents">intents</Link>, <Link to="/tools">tools</Link>, and <Link to="/parameters">params</Link> with descriptions. Add intent context to guide the workflow, and define <Link to="/outcomes">outcomes</Link> with descriptions and reply templates. Use <Link to="/models">decision models</Link> to guide execution.</p>
         <p className="workflow-summary">Your agent goes beyond fixed if/else rules: decision models interpret natural-language requests and choose actions, while replies come from your predefined templates.</p>
       </div>
       <Workflow />

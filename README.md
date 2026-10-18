@@ -2,6 +2,9 @@
 # <i>DecisionAct</i> <br>
 **Every Action Is a Decision**<br>Decision-Model-Driven Execution for Structured Agent Workflows
 
+DecisionAct is a Python agent framework for building task-focused agents with
+predefined intents, tools, and outcomes (with reply templates). Decision models
+interpret user requests and select actions; your Python functions execute them.
 
 ## Installation
 

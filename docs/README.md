@@ -6,9 +6,9 @@
 
 **Every Action Is a Decision**
 
-DecisionAct is a Python agent framework that uses decision models to choose
-intents, tools, inputs, and outcomes. Python functions execute the tools, and
-predefined templates produce the replies.
+DecisionAct is a Python agent framework for building task-focused agents with
+predefined intents, tools, and outcomes (with reply templates). Decision models
+interpret user requests and select actions; your Python functions execute them.
 
 These guides describe the v0.1.1 API in this repository. This version supports
 single-agent, single-intent workflows: a message selects one intent, which can
