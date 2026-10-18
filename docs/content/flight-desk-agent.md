@@ -13,8 +13,8 @@ state, and other business constraints.
   `cancel_booking`, `add_baggage`, `select_seat`.
 - **Memory:** conversation context helps resolve follow-up requests.
 - **Approval:** selected actions can pause before execution.
-- **Storage:** the example defaults to in-memory SQLite, with explicit file-based
-  checkpoint initialization left commented out.
+- **Storage:** checkpointing is disabled by default; sessions stay in Python memory.
+  Explicit file-based checkpoint initialization is left commented out.
 
 [View the complete flight desk agent →](https://github.com/Anil951/decisionact/blob/main/examples/flight_desk_agent.py)
 

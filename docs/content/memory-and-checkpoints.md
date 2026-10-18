@@ -47,9 +47,14 @@ Pass `SqliteCheckpointer(path="conversations.db")` as `checkpointer=` on `Agent`
 conversation state in a file. SQLite comes with Python. Saved state includes
 history, resolved inputs, paused questions, and pending approvals.
 
-Without an explicit checkpointer, each agent creates its own
-`SqliteCheckpointer(path=":memory:")`. That database exists only for the connection's
-lifetime. File-based checkpoints survive process restarts.
+Checkpointing is disabled by default. Omit `checkpointer` or pass
+`checkpointer=None` to keep sessions in plain Python memory without creating a
+checkpointer, SQLite connection, database, or checkpoint files. History, collected
+inputs, missing-input follow-ups, and pending approvals remain available within
+the same agent instance, but are lost when it is discarded or the process restarts.
+Memory still controls which history the model sees; it does not enable persistence.
+Pass a checkpointer explicitly when you need it. File-based checkpoints survive
+process restarts; `SqliteCheckpointer(path=":memory:")` is an explicit temporary option.
 
 ## Complete configuration example
 

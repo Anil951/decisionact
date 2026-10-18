@@ -27,7 +27,7 @@ Agent(
 | `outcomes` | Dictionary mapping outcome names to `Outcome` objects. |
 | `model` | A `DecisionModel` instance, such as `SystemOneModel` or `CloudflareModel`. |
 | `memory` | A `Memory` instance; defaults to `NoMemory()`. |
-| `checkpointer` | A `Checkpointer`; defaults to a new `SqliteCheckpointer(path=":memory:")`. |
+| `checkpointer` | Optional `Checkpointer`. Omitted or `None` disables checkpointing; sessions stay in Python memory for that agent instance. |
 | `middleware` | Iterable of `Middleware` instances, called in order; defaults to none. |
 | `max_calls` | Maximum tool calls in the tool loop before proceeding to an outcome. |
 | `max_param_tries` | Rejected candidate values per input before asking for an exact value. |
@@ -83,7 +83,7 @@ reset session has an empty history, regardless of how much memory the model sees
 
 ### `agent.reset(session_id="default")`
 
-Deletes that session from its checkpointer and returns `None`. Does not undo tools,
+Deletes that session from Python memory or the explicit checkpointer and returns `None`. Does not undo tools,
 clear business data, or delete other sessions.
 
 ## Tools, inputs, intents, and outcomes
@@ -318,7 +318,7 @@ and returns `None` for no saved approval. The framework calls this automatically
 - The database is not a transaction over external tool effects. A provider failure
   after a tool runs does not undo it or save an automatic recovery state. Review
   effects before retrying, and use idempotent tools where repeated execution matters.
-- Default in-memory checkpoints and fictional example business data do not survive
+- Default process-local sessions and fictional example business data do not survive
   a restart. File-based SQLite persists conversation state, not your tool's business data.
 
 [Back to documentation](../README.md)

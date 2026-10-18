@@ -139,7 +139,7 @@ print(result.decisions)
 ```
 
 Tool traces show inputs and outputs; decision traces show the model's choices and
-probabilities. The default checkpointer keeps the conversation in an in-memory
-SQLite database for the lifetime of that agent.
+probabilities. Checkpointing is disabled by default. Conversations stay in plain
+Python memory for the lifetime of that agent, without creating a SQLite database.
 
 Next: [Tools](tools.md).

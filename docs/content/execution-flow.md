@@ -71,7 +71,7 @@ framework's configured fallback wording.
 | Evaluation | `steps.decide_after_tool()` -> `model.nouls_and_choice()` | Batch questions about another tool, incorrect input, and outcome. |
 | Retry | `steps.wrong_input()` | Reject a candidate, retry within limits, or ask for an exact value. |
 | Reply | `Agent._finish()` -> `steps.decide_outcome()` when needed | Choose the ending and render the predefined reply. |
-| Storage | `Checkpointer.save()` | Save the current Session after a normally completed or handled turn. |
+| Storage | Python session snapshots, or explicit `Checkpointer.save()` | Retain the Session in process memory by default; save through a checkpointer only when supplied. |
 
 An intent with no tools skips the tool loop. If only one final outcome is possible,
 the framework can select it without another model call. A tool choice of `none`

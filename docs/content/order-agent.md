@@ -13,7 +13,7 @@ approval before it executes.
 - **Memory:** a conversation buffer keeps recent context available to decisions.
 - **Approval:** approve or reject a pending cancellation.
 - **Storage:** explicit SQLite initialization is commented out in the example;
-  the agent uses its default in-memory SQLite checkpointer.
+  checkpointing is disabled and sessions stay in plain Python memory.
 
 [View the complete order agent →](https://github.com/Anil951/decisionact/blob/main/examples/order_agent.py)
 

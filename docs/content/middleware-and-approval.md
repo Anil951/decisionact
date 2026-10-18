@@ -114,7 +114,8 @@ model decision. Other messages return the waiting reply without running the tool
 
 ## Persistence and access
 
-The default checkpoint is an in-memory SQLite database. For review that must
+Checkpointing is disabled by default; pending approvals stay in Python memory
+for the lifetime of the agent instance. For review that must
 survive a restart, pass a file-based checkpointer as described in
 [memory and checkpoints](memory-and-checkpoints.md).
 

@@ -9,8 +9,8 @@ An agent file declares
 
 and builds  Agent(tools=[...], intents=INTENTS, outcomes=OUTCOMES, model=<decision model>).
 The Agent validates the spec at startup. For each message it loads the conversation's
-Session from its checkpointer, runs the steps in steps.py, fills the chosen outcome's
-reply, and saves the Session again. Each message handles one intent.
+Session from process memory or an explicit checkpointer, runs the steps in steps.py,
+fills the chosen outcome's reply, and saves the Session again. Each message handles one intent.
 
 This module defines:
   limits     default safety caps (below); MESSAGES  the agent's own fallback wording
@@ -50,7 +50,7 @@ import inspect
 from dataclasses import dataclass, field
 from typing import Callable
 
-from .checkpoint import Checkpointer, SqliteCheckpointer
+from .checkpoint import Checkpointer
 from .memory import Memory, NoMemory
 from .middleware import Interrupt, Middleware, PendingApproval
 from .models import DecisionModel, LowConfidence, decision_log
@@ -286,8 +286,8 @@ class Agent:
             None (default) = NoMemory: the model sees only the current message, so picking
             from a list ("the first one") and bare replies to a list question lose context.
     checkpointer: where conversations are saved, e.g. SqliteCheckpointer("chat.db").
-            None (default) = SqliteCheckpointer(":memory:"): conversations are lost on restart.
-            Each turn loads the conversation (by session_id), runs, and saves it.
+            None (default) = disabled: sessions live in Python memory, with no SQLite database.
+            Sessions survive only for this agent instance unless an explicit checkpointer is used.
     middleware: a list of Middleware (decisionact.middleware), called in order, e.g.
             [HumanInTheLoopMiddleware(approvals={...})]. None (default) = no middleware.
     Optional limits (keyword only, defaults in brackets):
@@ -314,7 +314,8 @@ class Agent:
         self.model = model
         self.middleware = middleware
         self.memory = memory or NoMemory()
-        self.checkpointer = checkpointer if checkpointer is not None else SqliteCheckpointer(":memory:")
+        self.checkpointer = checkpointer
+        self._sessions = {}  # process-local session snapshots when checkpointing is disabled
         limits = {"max_calls": max_calls, "max_param_tries": max_param_tries,
                   "max_candidates": max_candidates, "window": window, "max_asks": max_asks}
         for name, value in limits.items():
@@ -350,8 +351,8 @@ class Agent:
     def turn(self, message, session_id="default"):
         """One user message in, a TurnResult out, for the conversation `session_id` (your
         app picks it: a user id, chat id, ...). The conversation is loaded from the
-        checkpointer before the turn and saved after it. Like invoke() in other agent
-        frameworks. The result holds the reply, the intent, the outcome, every tool call and
+        agent's Python memory or explicit checkpointer before the turn and saved after it.
+        Like invoke() in other agent frameworks. The result holds the reply, the intent, the outcome, every tool call and
         every decision made (see TurnResult). While a tool call waits for a person's
         approval, the middleware reads the message: an approval command (/approve,
         /reject [reason]) answers it, anything else only gets the waiting reply."""
@@ -399,7 +400,7 @@ class Agent:
         result.paused = copy.deepcopy(sess.paused)
         result.pending_approval = PendingApproval.from_saved(sess.pending_approval)
         sess.history.append(("agent", result.reply))
-        self.checkpointer.save(session_id, sess.to_dict())
+        self._save_data(session_id, sess.to_dict())
         return result
 
     def history(self, session_id="default"):
@@ -407,13 +408,30 @@ class Agent:
         return self._load(session_id).history
 
     def reset(self, session_id="default"):
-        """Forget the conversation (deletes it from the checkpointer)."""
-        self.checkpointer.delete(session_id)
+        """Forget the conversation from Python memory or the explicit checkpointer."""
+        self._delete_data(session_id)
+
+    def _load_data(self, session_id):
+        if self.checkpointer is not None:
+            return self.checkpointer.load(session_id)
+        return copy.deepcopy(self._sessions.get(session_id))
+
+    def _save_data(self, session_id, data):
+        if self.checkpointer is not None:
+            self.checkpointer.save(session_id, data)
+        else:
+            self._sessions[session_id] = copy.deepcopy(data)
+
+    def _delete_data(self, session_id):
+        if self.checkpointer is not None:
+            self.checkpointer.delete(session_id)
+        else:
+            self._sessions.pop(session_id, None)
 
     def _load(self, session_id):
-        """The Session from the checkpointer; a new Session if never saved. A saved paused
+        """The Session from Python memory or the checkpointer; new if never saved. A saved paused
         call whose tool or intent no longer exists (the agent changed) is dropped."""
-        data = self.checkpointer.load(session_id)
+        data = self._load_data(session_id)
         if data is None:
             return Session()
         sess = Session.from_dict(data)
