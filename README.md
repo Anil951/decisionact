@@ -17,21 +17,6 @@ Using uv inside a project:
 uv add decisionact
 ```
 
-## Available in v0.1.1 (Latest version)
-
-- Single-agent, single-intent workflows.
-- TypeSafe Jev and Cloudflare Clef support.
-- Python tools with required, optional, and categorical inputs.
-- Defined intents, outcomes, and reply templates.
-- Conversation memory and optional SQLite persistence.
-- Human approval middleware.
-- Configurable execution limits and decision/tool traces.
-
-## Coming in future versions
-
-- Single-agent-multi-intent workflows.
-- Multi-agent workflows.
-
 ## Documentation
 
 [Read the documentation](https://anil951.github.io/decisionact/)
