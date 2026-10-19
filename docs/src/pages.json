@@ -127,5 +127,12 @@
         "anchor": "middleware-and-approval"
       }
     ]
+  },
+  {
+    "slug": "changelog",
+    "title": "Changelog",
+    "group": "Releases",
+    "icon": "book",
+    "file": "../CHANGELOG.md"
   }
 ]

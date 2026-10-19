@@ -30,6 +30,7 @@ Building or previewing does not publish the website.
 - Edit the Markdown guides in `docs/content/`.
 - Edit `src/Overview.jsx` for the overview page.
 - Edit `src/pages.json` for page order, titles, sidebar groups, source files, and nested section links.
+- Edit the repository's `CHANGELOG.md` for release notes; the Changelog page renders that file directly.
 - Keep old shared URLs working with redirects in `src/legacy-routes.js`.
 - Edit `assets/site.css` for styles and responsive layouts.
 - Shared React components in `src/` handle layout, themes, search, and code copying.
@@ -55,8 +56,9 @@ PyPI publishing workflow remain separate.
 
 ## Documentation structure
 
-The sidebar follows four sections: Get started, Core concepts, Examples, and API
-reference. Core concepts contains Tools, Parameters, Intents, Outcomes, Decision
+The sidebar follows five sections: Get started, Core concepts, Examples, API
+reference, and Releases. Releases contains the Changelog, also linked from the
+version label in the sidebar footer. Core concepts contains Tools, Parameters, Intents, Outcomes, Decision
 models, Memory and checkpoints, Middleware and human approval, and Execution flow.
 
 Each concept explains its purpose, usage, behavior and limitations, and relevant

@@ -1,14 +1,20 @@
 ﻿import pages from './pages.json';
 
-const sources = import.meta.glob('../content/*.md', { query: '?raw', import: 'default', eager: true });
+import changelog from '../../CHANGELOG.md?raw';
+
+const sources = {
+  ...import.meta.glob('../content/*.md', { query: '?raw', import: 'default', eager: true }),
+  '../../CHANGELOG.md': changelog,
+};
 
 export function pageLink(href = '') {
   if (/^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(href)) return href;
-  return href.replace(/^(?:\.\.\/)?(README|[\w-]+)\.(?:md|html)(?=[?#]|$)/, (_, slug) => slug === 'README' || slug === 'index' ? '/' : `/${slug}`);
+  return href.replace(/^docs\/content\//, '').replace(/^(?:\.\.\/)?(README|[\w-]+)\.(?:md|html)(?=[?#]|$)/, (_, slug) => slug === 'README' || slug === 'index' ? '/' : `/${slug}`);
 }
 
 function cleanGuide(text) {
   return text
+    .replace(/^\uFEFF/, '')
     .replace(/^# [^\n]+\r?\n/, '')
     .replace(/^\[Documentation\]\((?:\.\.\/)?README\.md\) \/ [^\n]+\r?\n/gm, '')
     .replace(/^Next: .*?$|^\[Back to documentation\].*?$/gm, '')

@@ -40,6 +40,10 @@ involve several tool calls. Multi-intent and multi-agent workflows are planned.
 
 - [API reference](content/api-reference.md)
 
+## Releases
+
+- [Changelog](../CHANGELOG.md)
+
 Core concept pages explain one feature at a time with independent examples.
 Quickstart and example pages contain the complete application walkthroughs.
 
