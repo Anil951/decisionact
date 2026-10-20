@@ -204,6 +204,41 @@ A Python default by itself does not make an input optional to the framework.
 Declare `optional=True` as well. Conversely, an optional declaration without a
 Python default is rejected when the tool is decorated.
 
+## Repeated tool calls within a turn
+
+Each new invocation resolves its own inputs. Completed calls, including tool names,
+arguments and outputs, are included in parameter-selection decisions even when
+conversation memory is disabled. Inputs already selected for the current invocation
+are also shown, so later parameters can refer to the same operation.
+
+For example, `add 4+5 and add 6+7` can select `add` twice: the first invocation
+chooses `4` and `5`; the second uses the completed-call history to choose `6` and `7`.
+Intent context should tell the model to continue until every requested operation
+has been handled. The decision model still selects only from supplied choices;
+it does not generate an action description or unrestricted arguments.
+
+Scalar values from earlier tool outputs in the running turn are also offered as
+input choices. For `add 4+5, then add the result to 7`, the first output's `9`
+becomes a choice for the second call, allowing `add(9, 7)`. Each output choice
+identifies its source call and field, including fields inside nested lists and
+dictionaries. Parameters with a regex accept only output values matching the
+whole pattern; without a regex, whole scalar values are offered. Output values
+are passed as strings, just like extracted text. Categorical parameters still
+choose only from their declared options.
+
+At most `max_candidates` distinct output values are added per parameter, alongside
+the existing message candidates. Error/ignored output dictionaries are excluded.
+Output candidates require model selection rather than automatic reuse. This
+supports dependencies within the active tool loop; it does not add persistence
+of the original request and execution history across clarification turns.
+
+Successful calls clear the input cache. A wrong-input retry retains the other
+resolved inputs, and a paused call retains its partial inputs. Previously successful
+values remain available as candidates where supported, rather than being silently
+copied into a new call. Model selection is still probabilistic; the history and
+instructions do not guarantee correct pairing on every request. `Agent.max_calls`
+continues to bound execution. See `examples/repeated_add.py` for a live experiment.
+
 ## Missing inputs and follow-up questions
 
 If a required input cannot be resolved, the agent can return a question with

@@ -2,9 +2,132 @@
 
 [Documentation](../README.md) / Execution flow
 
-This page traces the current implementation. Your application calls the public
-methods; the framework calls the internal helpers. Internal names below explain
-the source and are not a stable API to call from applications.
+This page describes the framework's current execution path, including candidates
+from earlier tool outputs. The decision model answers typed
+questions; Python code builds the choices, runs tools, manages session state,
+and renders replies. **Choice** selects one supplied alternative. **Noul** judges
+a yes/no condition. The diagram follows the paper's step names and numbering;
+the sections below explain each decision and operation.
+
+## Step-by-step execution
+
+### Incoming message and session state
+
+Your application calls `agent.turn(message, session_id)`. The framework loads the
+session, appends the message, and supplies the previous messages allowed by the
+memory configuration. Sessions live in Python memory by default; an explicit
+checkpointer can save them elsewhere. A pending human approval is handled before
+ordinary intent selection: approve, reject, or keep waiting.
+
+### 0. Continue a paused input request
+
+If a tool is waiting for an input, a Noul checks whether the new message answers
+its question. A yes keeps the saved intent and tool and resumes input resolution
+at step 2b, skipping intent and tool selection. A no discards the paused
+call and starts a new request. Without a pending question, execution goes
+directly to intent selection.
+
+### 1. Select one intent
+
+A Choice selects among the configured intent names using their descriptions,
+the current message, and supplied history. The selected intent restricts which
+tools and outcomes are available. Its context guides subsequent decisions.
+If the intent has no tools, skip the loop and go directly to outcome resolution.
+
+### 2a. Select the next tool
+
+A Choice selects from the intent's permitted tools and `none`. Its state includes
+the request, intent context, and tool calls already made in this turn. A tool
+selection enters input resolution; `none` exits the loop and goes to the outcome.
+The loop can execute several calls, up to `max_calls`.
+
+### 2a2. Check optional inputs
+
+For each unresolved optional input, a Noul asks whether the user supplied or
+referred to a value. If yes, resolve it like a required input. If no, omit the
+argument so the function's Python default applies, then continue to the next
+parameter. Execute only after all parameters have been handled. Required inputs always go
+through resolution. This check can use up to four previous messages when the
+memory configuration permits them.
+
+### 2b. Resolve inputs
+
+The expanded diagram repeats this path for every parameter of the selected tool.
+It skips straight to execution if the tool has no parameters. For each parameter:
+
+1. Reuse its already resolved value, if present.
+2. If optional, run the presence Noul; an absent value uses the Python default and
+   returns to the parameter loop.
+3. If it declares categories, select from their keys and descriptions plus `none`.
+4. Otherwise, collect eligible values from earlier tool outputs in this turn,
+   then try regex matching. Merge matches with output candidates, remove
+   duplicates and exclude rejected values. One remaining current-message match
+   binds directly only when no output candidates were collected. Otherwise use
+   candidate Choice, even when only one merged value remains.
+5. Without a pattern or current-message matches, try shown-reply matches where
+   supported or bounded word-span candidates, then merge output candidates.
+   Select with Choice, or ask if no usable value can be selected.
+6. Store the resolved value and return to the next parameter. Execute the tool
+   only once every required or supplied optional input is ready.
+
+Reuse already resolved values when present. For categorical inputs, a Choice
+selects a declared option or `none`. For text inputs, code builds candidates from
+regex matches or bounded message spans and merges eligible earlier tool-output
+values. Supported paths can also offer a previous successful value or values
+shown in the last visible agent reply. Choice includes each candidate's text
+context or its source tool call and output path.
+
+Output candidates include scalar strings and numbers from nested output objects
+and lists. Error/ignored outputs, booleans and empty values are excluded. A
+declared regex must match the whole output value. Output candidates are skipped
+when the agent has asked for an exact value. `max_candidates` also caps the
+collected output candidates.
+
+If no usable value is selected, return a clarification question and retain the
+paused call. The next message returns to the continuation check. Input conversion and business
+validation remain the tool's responsibility.
+
+### Execute tool
+
+Once inputs are ready, run `before_tool` middleware. Human approval can interrupt
+execution and save the pending call before the function runs. Approval resumes
+that call; rejection skips it and selects the configured rejection outcome.
+
+If execution is permitted, call the Python function and record its arguments and
+output. The tool wrapper converts ordinary function exceptions into error
+dictionaries. Calls execute sequentially.
+
+### 2c. Inspect result
+
+One model request asks two Nouls—whether an input was rejected and whether another
+tool is needed—and a Choice over the intent's outcomes. Handle the answers in
+this order:
+
+1. **Repair a rejected input:** Exclude the rejected candidate and retry the same
+   tool with another value, retaining other resolved inputs. Input-retry limits
+   can trigger a question asking for the exact value. `max_param_tries` defaults
+   to `3`; it counts tool-rejected values for an input, rather than every tool
+   error. A missing or low-confidence value can cause a question immediately.
+2. **Continue the loop:** If no input repair is needed but another call is needed,
+   return to step 2a to select the next tool.
+3. **Finish:** Otherwise, accept the outcome if its confidence meets the threshold
+   and proceed to outcome resolution.
+
+Reaching the tool-call limit also exits the loop. A limit prevents further calls;
+it does not prove the user's task was completed.
+
+### 3. Resolve the outcome
+
+Use the accepted outcome from step 2c when available. Otherwise, make a Choice
+over the selected intent's allowed outcomes. If only one outcome is possible,
+select it without an additional model call.
+
+### Render reply and return
+
+Fill the outcome's predefined reply template with available tool inputs and
+dictionary output fields. Append the reply to history, save the session, and
+return `TurnResult` with the reply, intent, outcome, and decision and tool traces.
+The framework does not generate a free-form reasoning paragraph or reply.
 
 ## A normal turn
 
@@ -58,6 +181,9 @@ framework's configured fallback wording.
 
 ## Which function calls which?
 
+These names explain the implementation; internal helpers are not a stable API
+for applications to call directly.
+
 | Stage | Calls in the implementation | Purpose |
 | --- | --- | --- |
 | Entry | `Agent.turn()` -> `Agent._load()` | Load saved data or create a Session; add the message. |
@@ -86,12 +212,16 @@ For inputs that are needed:
 
 1. Reuse a value already resolved for the current request, if available.
 2. For categorical `options`, use a Choice over the category keys and `none`.
-3. Otherwise, try `regex_candidates()` on the current message.
-4. Multiple matches require a model Choice through `decide_span()`.
+3. Otherwise, collect `output_candidates()` from earlier calls, then try
+   `regex_candidates()` on the current message.
+4. `merge_candidates()` deduplicates message/output values and filters rejected
+   values. One remaining regex value binds directly only when no output candidates
+   were collected; otherwise `decide_span()` makes a Choice, even for one value.
 5. If an optional input refers to a shown value, candidates can come from the
    last visible agent reply.
 6. Otherwise, `window_candidates()` builds word spans and, when allowed, the
-   previous successful value for that parameter.
+   previous successful value for that parameter. Both this path and the shown-reply
+   path merge output candidates before Choice.
 7. If no usable value is selected, `ask_for()` and `pause()` record the question
    and end the turn with outcome `asking`.
 

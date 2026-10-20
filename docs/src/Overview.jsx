@@ -29,6 +29,7 @@ export default function Overview() {
       </div>
       <Workflow />
       <p className="workflow-note">Some intents can reach an outcome without running tools. Missing-input questions can pause the flow until the user replies.</p>
+      <p className="workflow-note"><Link to="/execution-flow">See the detailed execution flow.</Link></p>
     </section>
     <div className="prose">
       <Section id="installation">A small install. A structured start.</Section>

@@ -4,6 +4,7 @@ import rehypeSlug from 'rehype-slug';
 import { Link } from 'react-router';
 import CodeBlock from './CodeBlock';
 import { pageLink } from './content';
+import ExecutionDiagram from './ExecutionDiagram';
 
 function Heading({ as: Tag, id, children }) {
   return <Tag id={id}>{children}<Link className="headerlink" to={`#${id}`} aria-label="Link to this section">#</Link></Tag>;
@@ -25,6 +26,7 @@ const components = {
 
 export default function Guide({ page }) {
   return <><h1>{page.title}</h1><div className="prose">
+    {page.slug === 'execution-flow' && <ExecutionDiagram />}
     <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSlug]} components={components}>{page.content}</Markdown>
   </div></>;
 }
