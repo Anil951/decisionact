@@ -1,4 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router';
 import { attachLabelsToEdges } from './ExecutionLabels';
 import { graphNodes as sourceNodes, graphEdges as sourceEdges, loopIds, loopBounds as sourceLoopBounds, parameterIds, parameterBounds as sourceParameterBounds, overviewNodes as sourceOverviewNodes, overviewEdges as sourceOverviewEdges } from './ExecutionFlowData';
 
@@ -293,6 +294,7 @@ export default function ExecutionDiagram() {
     <p className="execution-help">Use the arrows to expand the tool loop and its parameter-resolution steps. Select a step to highlight its connected arrows.</p>
     <div className="execution-shape-key" aria-label="Card shapes"><span className="logic">Python logic: oval</span><span className="decision">Decision-model call: rectangular</span><span className="fallback">Framework fallback: rounded trapezoid</span></div>
     <p className="execution-help execution-confidence-note">When a decision-model Choice confidence is below <code>model.min_conf</code>, the framework sends its default rephrase message shown below. Parameter choices ask for the missing input instead.</p>
+    <p className="execution-help"><code>max_calls</code> limits tool executions per turn (default: 6, including retries). Reaching it stops further calls, even if work remains. <Link to="/api-reference#tool-call-limit">Change it when creating your Agent.</Link></p>
     <div className="execution-arrow-key" aria-label="Arrow styles">
       <span><svg viewBox="0 0 64 16" aria-hidden="true"><path d="M2 8 H60" /><path className="execution-key-arrowhead" d="M52 3 L61 8 L52 13 Z" /></svg>Solid arrows follow execution.</span>
       <span><svg viewBox="0 0 64 16" aria-hidden="true"><path className="execution-key-dashed" d="M2 8 H60" /><path className="execution-key-arrowhead" d="M52 3 L61 8 L52 13 Z" /></svg>Dashed arrows show bypasses and pauses.</span>

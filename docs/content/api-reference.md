@@ -40,6 +40,24 @@ validates registered tools, intent/outcome objects, referenced names, and middle
 Invalid configuration raises `TypeError` or `ValueError`. It does not make a model
 request. Business-rule checks belong inside your tools.
 
+### Tool-call limit
+
+`max_calls` limits tool executions per turn across all tools, including retries.
+It defaults to `6`. Change it in your application's `Agent` constructor:
+
+```python
+agent = Agent(
+    tools=TOOLS,
+    intents=INTENTS,
+    outcomes=OUTCOMES,
+    model=model,
+    max_calls=20,
+)
+```
+
+Reaching the limit stops further tool calls and proceeds to outcome selection;
+it does not mean the task is complete or automatically resume unfinished work.
+
 ### `agent.turn(message, session_id="default")`
 
 **Called by your application.** Takes a user message and returns `TurnResult` on a

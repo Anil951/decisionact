@@ -17,7 +17,7 @@ const definitions = [
   ['tool', '2a. Select the next tool', 'Request + history + context + calls', 'Choice: permitted tools + none',
     turnState,
     'choice(state, "Which tool should be called next?", {permitted tool name: description, none})',
-    'Check max_calls before selection. The default is 6 calls per turn. Budget exhaustion or none exits the tool loop.'],
+    'max_calls defaults to 6 tool executions per turn, including retries. Set it when constructing Agent. Reaching the limit stops further calls and proceeds to outcome selection; it does not mean the task is complete.'],
   ['param-kind', 'Is this parameter optional?', 'Current parameter declaration', 'Python: read Param.optional',
     'For each parameter of the selected tool: its declaration and optional flag.',
     'No model call. Required parameters go directly to value resolution. Optional parameters need the presence check.'],
@@ -89,6 +89,7 @@ const positions = {
 export const steps = definitions.map(([id,title,state,call,detailState,detailCall,note]) => ({id,title,state:detailState,call:detailCall,note}));
 const decisionIds = new Set(['continue','intent','tool','optional','category-choice','candidate-choice','inspect','outcome']);
 const nodeNotes = {
+  tool:'max_calls = 6 by default; retries count.',
   fallback:"Sorry, I didn't quite get that.\nCould you rephrase?\nParameter choices ask for the missing input instead.",
   ask:'The framework builds the fallback message dynamically\nfrom tool parameter definitions and sends it to the user.',
   regex:'Tool outputs need Choice, even for one value.',
@@ -135,7 +136,7 @@ export const graphEdges = [
   edge('no-tools','intent','outcome',{source:'left',sourceFraction:.35,target:'left',targetFraction:.7,via:lane(50),label:'No tools',labelAt:[200,453],branch:true}),
   edge('selected','tool','param-kind',{label:'Tool selected: handle each input',labelAt:[715,841]}),
   edge('parameter-entry','parameters','categories',{source:'top',sourceFraction:210/890}),
-  edge('none','tool','outcome',{source:'left',sourceFraction:.35,target:'left',targetFraction:.3,via:lane(100),label:'none / max_calls',labelAt:[225,713],branch:true}),
+  edge('none','tool','outcome',{source:'left',sourceFraction:.35,target:'left',targetFraction:.3,via:lane(100),label:'none / max_calls reached',labelAt:[225,713],branch:true}),
   edge('no-parameters','tool','execute',{source:'left',sourceFraction:.7,target:'left',targetFraction:.2,via:lane(260),label:'No parameters',labelAt:[240,1330],branch:true}),
   edge('all-ready','value','parameters',{target:'bottom',targetFraction:210/890,label:'All parameters ready',labelAt:[650,2995]}),
   edge('parameter-exit','parameters','execute',{sourceFraction:210/890,label:'All inputs ready',labelAt:[640,3055]}),

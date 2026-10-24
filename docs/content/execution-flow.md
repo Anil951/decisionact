@@ -39,7 +39,8 @@ If the intent has no tools, skip the loop and go directly to outcome resolution.
 A Choice selects from the intent's permitted tools and `none`. Its state includes
 the request, intent context, and tool calls already made in this turn. A tool
 selection enters input resolution; `none` exits the loop and goes to the outcome.
-The loop can execute several calls, up to `max_calls`.
+`max_calls` defaults to `6` tool executions per turn, including retries. Configure
+it when creating your agent: [configure the tool-call limit](api-reference.md#tool-call-limit).
 
 ### 2a2. Check optional inputs
 
@@ -113,8 +114,8 @@ this order:
 3. **Finish:** Otherwise, accept the outcome if its confidence meets the threshold
    and proceed to outcome resolution.
 
-Reaching the tool-call limit also exits the loop. A limit prevents further calls;
-it does not prove the user's task was completed.
+When `max_calls` is reached, the loop stops and proceeds to outcome selection.
+Reaching the limit does not mean the user's task is complete.
 
 ### 3. Resolve the outcome
 
