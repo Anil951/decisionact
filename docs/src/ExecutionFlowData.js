@@ -1,7 +1,7 @@
 // This diagram describes the current local engine, including tool-output candidates.
 const messageState = 'Current user message + history permitted by the memory configuration';
-const parameterState = `${messageState} + intent context + tool name and description + input name and description + inputs already resolved for this invocation + this turn's ordered tool names, arguments and outputs`;
-const turnState = `${messageState} + intent context + this turn's ordered tool names, arguments and outputs`;
+const parameterState = `${messageState} + intent context + input guidance + current invocation (tool, input, call number, prior calls of this tool and resolved sibling inputs) + this turn's ordered tool names, arguments and results`;
+const turnState = `${messageState} + intent context + execution guidance + this turn's ordered tool names, arguments and results`;
 
 const definitions = [
   ['incoming', 'Incoming message', 'Request + supplied history', 'Load session; no model call',
@@ -14,25 +14,25 @@ const definitions = [
   ['intent', '1. Select one intent', 'Request + visible history', 'Choice: intent names and descriptions',
     messageState,
     'choice(state, "What does the user want?", {intent name: description})'],
-  ['tool', '2a. Select the next tool', 'Request + history + context + calls', 'Choice: permitted tools + none',
+  ['tool', '2a. Select the next tool', 'Request + history + context + calls + tool-call limits', 'Choice: permitted tools + none',
     turnState,
     'choice(state, "Which tool should be called next?", {permitted tool name: description, none})',
-    'max_calls defaults to 6 tool executions per turn, including retries. Set it when constructing Agent. Reaching the limit stops further calls and proceeds to outcome selection; it does not mean the task is complete.'],
+    'Before another execution, check the hard cap. At an exhausted allowance, a continuation Noul receives request state, the trace, calls already executed and tool-call limits. A yes extends the allowance without resetting totals; a no or hard cap returns limit_reached directly. Defaults: max_calls=6, max_call_limit=24. No extension is needed when the prior call already completed the task.'],
   ['param-kind', 'Is this parameter optional?', 'Current parameter declaration', 'Python: read Param.optional',
     'For each parameter of the selected tool: its declaration and optional flag.',
     'No model call. Required parameters go directly to value resolution. Optional parameters need the presence check.'],
-  ['optional', '2a2. Did the user give a value?', 'Recent history + request + input', 'Noul: did they give or point to a value?',
-    'Current message; up to four visible prior messages; intent name, description and context; tool and optional-input descriptions.',
+  ['optional', '2a2. Did the user give a value?', 'Request + input + siblings + calls/results', 'Noul: did they give or point to a value?',
+    'Current message; up to four visible prior messages; intent name, description and context; input guidance; current invocation and resolved sibling inputs; this turn\'s completed calls and results.',
     'noul(state, "Did the user give, choose, or point to a value for this optional input?")',
     'Yes resolves this value. No omits only this argument; other parameters must still be handled.'],
   ['categories', 'Does it declare categories?', 'Param.options', 'Python: check the options dictionary',
     'The current parameter declaration, especially its options dictionary.',
     'No model call. Nonempty options use categorical Choice; otherwise use the text-resolution path.',
     'Nonempty options and a regex pattern cannot both be declared for the same parameter.'],
-  ['category-choice', 'Choose a category', 'Request + history + tool/input context', 'Choice: category keys + meanings + none',
+  ['category-choice', 'Choose a category', 'Request + tool/input + siblings + calls', 'Choice: category keys + meanings + none',
     parameterState,
     'choice(state, "Which category does the user give?", {category key: description, none})',
-    'A valid selection supplies the declared key. none or low confidence asks the user.'],
+    'A valid selection supplies the declared key. A low-confidence Choice gets one focused recheck with the same options and threshold. A confident none, or uncertainty after that recheck, asks the user.'],
   ['regex', 'Find regex matches', 'Message + pattern + earlier tool outputs', 'Python: find matches; add output values',
     'Current message, parameter pattern, earlier tool-call outputs from this turn, previously rejected values and whether an exact value was requested.',
     'No model call. Collect eligible string/number values from earlier tool outputs, then merge with current-message regex matches. Remove duplicates and rejected values. Bind directly only when one value remains and no output candidates were collected. Otherwise use candidate Choice.',
@@ -41,17 +41,17 @@ const definitions = [
     'Current message, memory-visible last agent reply, optional-input presence result, supported earlier successful value and collected tool-output candidates.',
     'No model call. For a referenced optional input, try regex matches in the last visible agent reply; otherwise build word-span candidates. Merge with tool-output candidates, deduplicate and exclude rejected values. Every nonempty list goes to candidate Choice, even with one value.',
     'window defaults to 3 words; max_candidates defaults to 40. Tool-output values can supply candidates even when message spans or shown-reply matches supply none.'],
-  ['candidate-choice', 'Choose an input value', 'Request + history + input + rejections', 'Choice: candidate text + source + none',
+  ['candidate-choice', 'Choose an input value', 'Request + input + siblings + calls + rejections', 'Choice: candidate text + source + none',
     `${parameterState} + previously rejected text candidates`,
     'choice(state, "Which candidate is this input?", {candidate text: surrounding/source context, none})',
-    'Choose among merged message matches, shown-reply matches, word spans and eligible tool-output values. Choices include their surrounding text or source tool call and output path. Tool-output candidates require Choice even when only one merged value remains. none or low confidence asks the user.'],
+    'Choose among merged message matches, shown-reply matches, word spans and eligible tool-output values. Choices identify surrounding text or the source call and output path. Low confidence gets one focused recheck with unchanged choices and threshold; confident none or continued uncertainty asks for the input.'],
   ['value', 'Parameter ready', 'Parameter name + selected value', 'Keep the resolved value; continue',
     'Current parameter name and its resolved value.',
-    'No model call. Keep the resolved value. Handle the next parameter, or execute the tool once every input has been handled. Saved values are reused without resolving them again.'],
+    'No model call. Keep the resolved value for this invocation. Handle the next parameter, or execute once every input is ready. A new invocation starts with fresh inputs; input repair retains valid sibling inputs.'],
   ['execute', 'Execute the Python tool', 'All resolved inputs; defaults for omissions', 'Middleware, then Tool.run(**args)',
     'Resolved tool arguments after all required inputs and supplied optional inputs are ready.',
     'No decision-model call. Run before_tool middleware, then execute the function and record its arguments and output.',
-    'Approval middleware can pause before execution. Ordinary function exceptions become error dictionaries.'],
+    'Approval middleware can pause each invocation before execution. Ordinary exceptions become error dictionaries. Keep the ordered tool name, arguments and result for later decisions.'],
   ['inspect', '2c. Inspect the tool result', 'Request + history + context + tool calls', 'One request: two Nouls + outcome Choice',
     turnState,
     'nouls_and_choice(state): Noul "Was an input rejected?" + Noul "Is another tool needed?" + Choice {allowed outcome name: description}.',
@@ -59,7 +59,7 @@ const definitions = [
   ['ask', 'Ask for the missing input', 'Missing input + pending tool call', 'Build and send a framework fallback message',
     'Input name and description or categories, pending intent/tool, collected inputs and clarification count.',
     'No model call. Fill a framework-defined question template with parameter names, descriptions or categories supplied by the agent developer. Retain the pending call and return. The next user message goes to step 0.',
-    'Missing or low-confidence input can ask immediately. max_param_tries=3 counts tool-rejected values; it does not count every tool error. max_asks defaults to 2 clarification turns for the same pending input.'],
+    'A confident none or no candidates asks immediately. A low-confidence input Choice gets at most one recheck first. max_param_tries=3 counts tool-rejected values; max_asks=2 limits questions for the same pending input. The original multi-operation request/trace is not fully retained across this pause.'],
   ['outcome', '3. Resolve the outcome', 'Request + history + context + calls', 'Choice only if the outcome is unresolved',
     turnState,
     'Reuse the accepted outcome from 2c. Otherwise choice(state, "What is the outcome?", {allowed outcome name: description}).',
@@ -67,10 +67,10 @@ const definitions = [
   ['fallback', 'Return framework fallback', 'Any step: Choice confidence < model.min_conf', 'Send the default fallback message to the user.',
     'An uncaught LowConfidence from intent/tool/outcome selection or post-tool outcome acceptance/repair, plus the current session and execution trace.',
     'No model call. Agent._execute() catches LowConfidence, returns MESSAGES["rephrase"] with outcome rephrase, appends the reply to history and saves the session.',
-    'Parameter Choice handles low confidence by asking for the specific missing input instead. This fallback ends the turn without rendering a configured outcome reply.'],
-  ['reply', 'Render reply and return', 'Template + inputs + output fields', 'Fill template and save; no model call',
+    'Only text/categorical input Choices get one focused recheck before asking for the input. Intent/tool/outcome Choices do not. A fallback can occur after a tool has already succeeded; it does not undo execution.'],
+  ['reply', 'Render reply and return', 'Template or limit message + call facts', 'Fill reply and save; no model call',
     'Outcome reply template, available tool inputs and dictionary output fields.',
-    'No model call. Fill the template, append the reply to history, save session state and return reply plus decision and tool traces.'],
+    'No model call. Fill the outcome template, or return the framework unfinished-work message for limit_reached. Save history and return the reply and traces. Later fields overwrite earlier names; templates do not automatically aggregate every call.'],
 ];
 
 const positions = {
@@ -89,12 +89,14 @@ const positions = {
 export const steps = definitions.map(([id,title,state,call,detailState,detailCall,note]) => ({id,title,state:detailState,call:detailCall,note}));
 const decisionIds = new Set(['continue','intent','tool','optional','category-choice','candidate-choice','inspect','outcome']);
 const nodeNotes = {
-  tool:'max_calls = 6 by default; retries count.',
-  fallback:"Sorry, I didn't quite get that.\nCould you rephrase?\nParameter choices ask for the missing input instead.",
+  tool:'Allowance: 6; hard cap: 24; retries count.\nRenew with Noul, or return limit_reached.',
+  fallback:"Sorry, I didn't quite get that.\nCould you rephrase?\nInput choices recheck once, then ask if uncertain.",
   ask:'The framework builds the fallback message dynamically\nfrom tool parameter definitions and sends it to the user.',
   regex:'Tool outputs need Choice, even for one value.',
   spans:'window = 3; max_candidates = 40',
-  inspect:'Repair first; then another tool; then finish.',
+  inspect:'Repair first; otherwise clear inputs for the next call.\nThen another tool, or finish.',
+  'category-choice':'Low confidence: one recheck, same threshold.',
+  'candidate-choice':'Low confidence: one recheck, same threshold.',
 };
 export const graphNodes = definitions.map(([id,title,state,call,,,note]) => {
   const [x,y,width,height] = positions[id];
@@ -136,7 +138,8 @@ export const graphEdges = [
   edge('no-tools','intent','outcome',{source:'left',sourceFraction:.35,target:'left',targetFraction:.7,via:lane(50),label:'No tools',labelAt:[200,453],branch:true}),
   edge('selected','tool','param-kind',{label:'Tool selected: handle each input',labelAt:[715,841]}),
   edge('parameter-entry','parameters','categories',{source:'top',sourceFraction:210/890}),
-  edge('none','tool','outcome',{source:'left',sourceFraction:.35,target:'left',targetFraction:.3,via:lane(100),label:'none / max_calls reached',labelAt:[225,713],branch:true}),
+  edge('none','tool','outcome',{source:'left',sourceFraction:.35,target:'left',targetFraction:.3,via:lane(100),label:'none',labelAt:[225,713],branch:true}),
+  edge('limit-stop','tool','reply',{source:'right',sourceFraction:.8,target:'right',targetFraction:.6,via:lane(1295),label:'Limit stop: unfinished-work reply',labelAt:[1100,3620],branch:true}),
   edge('no-parameters','tool','execute',{source:'left',sourceFraction:.7,target:'left',targetFraction:.2,via:lane(260),label:'No parameters',labelAt:[240,1330],branch:true}),
   edge('all-ready','value','parameters',{target:'bottom',targetFraction:210/890,label:'All parameters ready',labelAt:[650,2995]}),
   edge('parameter-exit','parameters','execute',{sourceFraction:210/890,label:'All inputs ready',labelAt:[640,3055]}),
@@ -148,7 +151,7 @@ export const graphEdges = [
   edge('categorical','categories','category-choice',{source:'right',target:'left',via:(a,b)=>[[810,a[1]],[810,b[1]]],label:'Yes: categories',labelAt:[780,1730]}),
   edge('text-input','categories','regex',{label:'No categories',labelAt:[635,1825]}),
   edge('category-value','category-choice','value',{source:'right',target:'right',targetFraction:.18,via:lane(1190),label:'Category selected',labelAt:[1050,2084]}),
-  edge('category-missing','category-choice','ask',{source:'right',sourceFraction:.8,target:'right',targetFraction:.3,via:lane(1205),label:'none / low confidence',labelAt:[1100,2115],branch:true}),
+  edge('category-missing','category-choice','ask',{source:'right',sourceFraction:.8,target:'right',targetFraction:.3,via:lane(1205),label:'none / still uncertain after recheck',labelAt:[1100,2115],branch:true}),
   edge('one-match','regex','value',{source:'left',sourceFraction:.4,target:'left',targetFraction:.5,via:lane(334),label:'One value; no outputs',labelAt:[405,2087]}),
   edge('many-matches','regex','candidate-choice',{source:'right',target:'right',targetFraction:.2,via:lane(735),label:'Several matches / outputs',labelAt:[825,2104],labelSide:'above'}),
   edge('fallback','regex','spans',{label:'No pattern / no matches',labelAt:[675,2102]}),
@@ -156,7 +159,7 @@ export const graphEdges = [
   edge('candidates','spans','candidate-choice',{label:'Merged candidates available',labelAt:[670,2370]}),
   edge('no-candidates','spans','ask',{source:'right',target:'left',targetFraction:.2,via:lane(770),label:'No eligible merged values',labelAt:[830,2220],branch:true}),
   edge('chosen','candidate-choice','value',{label:'Value selected',labelAt:[635,2655]}),
-  edge('no-value','candidate-choice','ask',{source:'right',target:'left',targetFraction:.4,via:lane(745),label:'none / low confidence',labelAt:[845,2520],branch:true}),
+  edge('no-value','candidate-choice','ask',{source:'right',target:'left',targetFraction:.4,via:lane(745),label:'none / still uncertain after recheck',labelAt:[845,2520],branch:true}),
   edge('value-next','value','param-kind',{source:'left',sourceFraction:.8,target:'left',targetFraction:.85,via:lane(326),label:'More parameters: repeat',labelAt:[440,2890],branch:true}),
   edge('result','execute','inspect',{label:'Tool result',labelAt:[625,3290]}),
   edge('retry','inspect','param-kind',{source:'right',target:'top',targetFraction:.95,via:(a,b)=>[[1250,a[1]],[1250,1220],[b[0],1220]],label:'1. Rejected input: retry same tool',labelAt:[1000,3419],branch:true}),
@@ -171,7 +174,7 @@ export const graphEdges = [
 
 export const loopIds = new Set(graphNodes.filter(node => !['incoming','continue','intent','fallback','outcome','reply'].includes(node.id)).map(node=>node.id));
 export const loopBounds = {x:300,y:580,width:930,height:3040};
-export const loopSummary = {id:'loop',kind:'group',x:350,y:640,width:360,height:180,title:'2. Execute the tool loop',state:'Selected intent + session + tool-call history',call:'Resolve every parameter, execute, inspect and repeat.',note:'Expand to see each decision and retry.'};
+export const loopSummary = {id:'loop',kind:'group',x:350,y:640,width:360,height:180,title:'2. Execute the tool loop',state:'Selected intent + request + ordered calls and results',call:'Fresh inputs per call; execute, inspect and repeat.',note:'Renew allowance within the hard cap; otherwise return limit_reached.'};
 export const overviewNodes = [nodes.incoming,nodes.continue,nodes.intent,nodes.fallback,loopSummary,{...nodes.outcome,y:900},{...nodes.reply,y:1140}];
 export const overviewEdges = [
   {id:'start',from:'incoming',to:'continue',points:[[530,130],[530,190]]},
@@ -179,7 +182,8 @@ export const overviewEdges = [
   {id:'resume',from:'continue',to:'loop',points:[[710,270],[1240,270],[1240,685],[710,685]],label:'Yes: resume inputs',labelAt:[820,254],branch:true},
   {id:'has-tools',from:'intent',to:'loop',points:[[530,560],[530,640]],label:'Has tools',labelAt:[610,600]},
   {id:'no-tools',from:'intent',to:'outcome',points:[port(nodes.intent,'left',50/140),[160,470],[160,980],[350,980]],label:'No tools',labelAt:[245,454],branch:true},
-  {id:'finished',from:'loop',to:'outcome',points:[[530,820],[530,900]],label:'Loop finished / call limit',labelAt:[685,860]},
+  {id:'finished',from:'loop',to:'outcome',points:[[530,820],[530,900]],label:'Loop finished',labelAt:[685,860]},
+  {id:'limit-stop',from:'loop',to:'reply',points:[[710,790],[1190,790],[1190,1210],[710,1210]],label:'Limit stop: unfinished-work reply',labelAt:[1000,1080],branch:true},
   {id:'paused',from:'loop',to:'continue',points:[[710,755],[1280,755],[1280,155],[650,155],[650,190]],label:'Question: next message',labelAt:[805,139],branch:true},
   {id:'render',from:'outcome',to:'reply',points:[[530,1060],[530,1140]],label:'Outcome resolved',labelAt:[650,1100]},
 ];

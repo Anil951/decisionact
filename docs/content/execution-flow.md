@@ -2,8 +2,9 @@
 
 [Documentation](../README.md) / Execution flow
 
-This page describes the framework's current execution path, including candidates
-from earlier tool outputs. The decision model answers typed
+This page describes v0.1.2 execution, including repeated calls, candidates from
+earlier results, input rechecks and renewable call allowances. The decision model
+answers typed
 questions; Python code builds the choices, runs tools, manages session state,
 and renders replies. **Choice** selects one supplied alternative. **Noul** judges
 a yes/no condition. The diagram follows the paper's step names and numbering;
@@ -39,8 +40,26 @@ If the intent has no tools, skip the loop and go directly to outcome resolution.
 A Choice selects from the intent's permitted tools and `none`. Its state includes
 the request, intent context, and tool calls already made in this turn. A tool
 selection enters input resolution; `none` exits the loop and goes to the outcome.
-`max_calls` defaults to `6` tool executions per turn, including retries. Configure
-it when creating your agent: [configure the tool-call limit](api-reference.md#tool-call-limit).
+DecisionAct automatically includes shared framework execution instructions in
+tool-selection and post-tool continuation state, even when intent context is empty.
+These instructions cover repeated calls, requested order and dependencies, use of
+available history and tool results, and leaving argument validation to tools.
+Applications can keep intent context focused on their own capabilities and rules.
+State is serialized as JSON text with separate `framework_instructions`,
+`user_message`, `intent.context`, `conversation_history`, and `tool_calls_this_turn`
+fields. Each tool-call entry includes `call_id`, `tool`, `arguments`, and `result`;
+the active intent name is included in tool-selection and continuation decisions.
+Input decisions also identify the `current_invocation` and its resolved inputs.
+Invocation state includes its next call number and references to prior calls of
+the same tool. These are execution-trace references, not a generated operation plan.
+Messages and tool outputs are observations, kept separate from instruction fields.
+The call IDs number observations in the supplied trace; they do not implement
+operation tracking, duplicate prevention, or persistence across interruptions.
+The guidance does not change memory settings, permissions, limits, or error handling,
+and model decisions remain subject to confidence thresholds.
+`max_calls` defaults to `6` executions per allowance, including retries; the
+absolute `max_call_limit` defaults to `24`. Configure them when creating your
+agent: [configure the tool-call limit](api-reference.md#tool-call-limit).
 
 ### 2a2. Check optional inputs
 
@@ -56,7 +75,8 @@ memory configuration permits them.
 The expanded diagram repeats this path for every parameter of the selected tool.
 It skips straight to execution if the tool has no parameters. For each parameter:
 
-1. Reuse its already resolved value, if present.
+1. Reuse its already resolved value for this invocation, if present. A new
+   invocation starts with a fresh input cache.
 2. If optional, run the presence Noul; an absent value uses the Python default and
    returns to the parameter loop.
 3. If it declares categories, select from their keys and descriptions plus `none`.
@@ -84,6 +104,13 @@ declared regex must match the whole output value. Output candidates are skipped
 when the agent has asked for an exact value. `max_candidates` also caps the
 collected output candidates.
 
+Independent requested repetitions use their original operands; earlier computed
+results are used when the request establishes a dependency. A low-confidence
+input Choice receives at most one focused recheck, with the same candidates and
+the same confidence threshold. Both attempts are recorded in the decision trace.
+A confident `none` asks for clarification immediately. The recheck may also
+choose `none`; if it remains below threshold, the pending call asks for the value.
+
 If no usable value is selected, return a clarification question and retain the
 paused call. The next message returns to the continuation check. Input conversion and business
 validation remain the tool's responsibility.
@@ -109,12 +136,20 @@ this order:
    can trigger a question asking for the exact value. `max_param_tries` defaults
    to `3`; it counts tool-rejected values for an input, rather than every tool
    error. A missing or low-confidence value can cause a question immediately.
-2. **Continue the loop:** If no input repair is needed but another call is needed,
-   return to step 2a to select the next tool.
+2. **Continue the loop:** If no input repair is needed, clear completed inputs.
+   If another call is needed, return to step 2a with the ordered trace to select
+   the next tool and resolve that invocation's own inputs.
 3. **Finish:** Otherwise, accept the outcome if its confidence meets the threshold
    and proceed to outcome resolution.
 
-When `max_calls` is reached, the loop stops and proceeds to outcome selection.
+When an allowance is exhausted and execution would continue, a separate Noul
+checks whether the request and recorded results justify another allowance. It
+receives the complete current trace, calls already executed and tool-call limits. A yes advances the
+allowance by `max_calls`, clipped to the absolute `max_call_limit`; call history
+and the total execution count are never reset. A declined extension or further
+work at the hard cap returns `limit_reached` with an unfinished-work reply,
+bypassing ordinary outcome selection. Completion exactly at a boundary needs
+no extension.
 Reaching the limit does not mean the user's task is complete.
 
 ### 3. Resolve the outcome
@@ -129,6 +164,44 @@ Fill the outcome's predefined reply template with available tool inputs and
 dictionary output fields. Append the reply to history, save the session, and
 return `TurnResult` with the reply, intent, outcome, and decision and tool traces.
 The framework does not generate a free-form reasoning paragraph or reply.
+
+Later call fields overwrite earlier fields with the same name in templates.
+For two independent additions returning `9` and `13`, `Result: {result}` renders
+`Result: 13`; both answers remain in the trace. A low-confidence outcome can
+instead return `rephrase` after successful execution. Neither fallback nor a
+limit stop rolls back completed tool effects.
+
+## State during a dependent call
+
+After `add(4, 5)` returns `9`, the next-tool decision for
+`Add 4+5, then add the result to 7` receives JSON state shaped like this:
+
+```json
+{
+  "framework_instructions": "Built-in execution guidance...",
+  "user_message": "Add 4+5, then add the result to 7",
+  "intent": {
+    "name": "calculate",
+    "context": "The available arithmetic tools and their meanings..."
+  },
+  "conversation_history": [],
+  "tool_calls_this_turn": [
+    {
+      "call_id": 1,
+      "tool": "add",
+      "arguments": {"a": "4", "b": "5"},
+      "result": {"result": 9}
+    }
+  ]
+}
+```
+
+Guidance and context are abbreviated here. The decision model chooses `add`
+again; input choices can include the source-labelled output `9` and message
+value `7`. Input state adds `current_invocation` with tool/input descriptions,
+resolved sibling values, next call number and prior call IDs for that tool.
+There is no generated action plan or unrestricted argument generation. See
+[Calculator](calculator.md) for the complete sequence and more queries.
 
 ## A normal turn
 
@@ -171,7 +244,7 @@ Application: agent.turn(message, session_id)
   -> run middleware before_tool hooks
   -> execute the Python tool
   -> evaluate the result: another tool, wrong input, and candidate outcome
-  -> repeat the tool loop if needed, within max_calls
+  -> repeat if needed, renewing max_calls allowances up to max_call_limit
   -> select the final outcome and render its reply template
   -> append the reply, save the Session, return TurnResult
 ```
@@ -197,6 +270,8 @@ for applications to call directly.
 | Execution | `Tool.run(**args)` -> your function | Execute the tool; ordinary exceptions become error output. |
 | Evaluation | `steps.decide_after_tool()` -> `model.nouls_and_choice()` | Batch questions about another tool, incorrect input, and outcome. |
 | Retry | `steps.wrong_input()` | Reject a candidate, retry within limits, or ask for an exact value. |
+| Input recheck | `steps._input_choice()` | One focused recheck after a low-confidence text/categorical input Choice; retain options and threshold. |
+| Allowance | `steps.decide_call_extension()` | Noul deciding whether requested work justifies another allowance within the hard cap. |
 | Reply | `Agent._finish()` -> `steps.decide_outcome()` when needed | Choose the ending and render the predefined reply. |
 | Storage | Python session snapshots, or explicit `Checkpointer.save()` | Retain the Session in process memory by default; save through a checkpointer only when supplied. |
 
@@ -211,7 +286,7 @@ message does not supply it, the tool's Python default is used.
 
 For inputs that are needed:
 
-1. Reuse a value already resolved for the current request, if available.
+1. Reuse a value already resolved for the current invocation, if available.
 2. For categorical `options`, use a Choice over the category keys and `none`.
 3. Otherwise, collect `output_candidates()` from earlier calls, then try
    `regex_candidates()` on the current message.
@@ -223,7 +298,8 @@ For inputs that are needed:
 6. Otherwise, `window_candidates()` builds word spans and, when allowed, the
    previous successful value for that parameter. Both this path and the shown-reply
    path merge output candidates before Choice.
-7. If no usable value is selected, `ask_for()` and `pause()` record the question
+7. A low-confidence input Choice gets one focused recheck through `_input_choice()`.
+   If no usable value is selected, `ask_for()` and `pause()` record the question
    and end the turn with outcome `asking`.
 
 The parameter `window` controls span length; `max_candidates` caps how many span
@@ -241,7 +317,7 @@ dropped and a new intent is selected. Asking beyond `max_asks` ends with `stoppe
 
 ```text
 HumanInTheLoopMiddleware.before_tool()
-  -> save pending tool, inputs, previous calls, and rejection outcome
+  -> save original request, pending tool, inputs, previous calls and rejection outcome
   -> raise Interrupt
 Agent._execute()
   -> return awaiting_approval and save the Session
@@ -249,6 +325,7 @@ Agent._execute()
 Later: agent.turn('/approve', session_id)
   -> middleware.answer_interrupt() -> parse_command()
   -> Agent._decide_approval()
+  -> restore the original request for decisions and input extraction
   -> execute the approved call without asking for the same approval again
   -> evaluate the tool result and finish the turn
 ```
@@ -256,6 +333,12 @@ Later: agent.turn('/approve', session_id)
 `agent.resume(session_id, approve())` reaches the same continuation without adding
 a user chat message. Rejection selects the configured rejection outcome without
 running the tool. Later tools can still require their own approvals.
+
+New approval records preserve the original request independently of conversation
+memory, including with `NoMemory()`. The approval command remains in history;
+the restored request is used only for the active execution attempt and any later
+approval it creates. Older records without the optional request field retain
+their previous message behavior.
 
 ## Provider calls and errors
 

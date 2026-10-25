@@ -65,6 +65,11 @@ Each concept explains its purpose, usage, behavior and limitations, and relevant
 API links. Examples are independent of the order-agent tutorial; provider-backed
 scripts state their environment requirements and include their own definitions.
 Order and flight application walkthroughs stay in Quickstart and Examples.
+The Calculator example documents repeated calls and dependent results in
+v0.1.2, with its route registered in `src/pages.json`. Keep `src/ExecutionFlowData.js`
+and `src/ExecutionDiagram.jsx` aligned with the execution-flow guide when changing
+call allowances, input selection or fallback behavior. Every diagram State line
+is rendered inside square brackets; keep card text short and put detail in guides.
 
 Jev and Cloudflare Clef share the models page with nested section links. API
 reference stays on one page with nested links to the public API groups.

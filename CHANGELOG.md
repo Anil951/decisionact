@@ -1,5 +1,40 @@
 ﻿# Changelog
 
+## v0.1.2
+
+- **Repeated tool calls:** Previously, later calls could reuse earlier inputs.
+  Each invocation now resolves fresh inputs using the current request and call history.
+- **Dependent calls:** Earlier results were not offered as input choices. They are
+  now selectable, allowing sequences such as `add(4, 5)=9`, then `add(9, 7)=16`.
+- **Execution guidance:** Applications previously repeated general tool-loop rules
+  in intent context. The framework now supplies guidance for order, dependencies
+  and repeated operations automatically.
+- **Clearer state:** Messages, intent context and tool observations now have separate
+  JSON fields, helping the model distinguish instructions from completed results.
+- **Approval continuation:** With `NoMemory`, approving a call previously hid the
+  original request. New approval records now retain it for decisions and input
+  extraction across repeated approvals and checkpoint restores.
+- **Input-confidence recheck:** An uncertain input previously caused an immediate
+  question. It now gets one recheck with the same choices and threshold before asking.
+- **Confidence threshold:** Reduced the default Choice confidence requirement from
+  `0.6` to `0.5`. Explicit `min_conf` settings still override the default.
+- **Longer requests:** Previously, `max_calls=6` stopped execution after six calls.
+  It now allows renewable groups of six, with a separate hard cap of
+  `max_call_limit=24`. Extensions retain previous calls and the execution count.
+- **Honest limit replies:** Limit stops could previously reach a success outcome.
+  They now return `limit_reached`, an unfinished-work reply and `limit_reason`.
+- **Documentation:** The calculator agent includes sample messages demonstrating
+  multiple tool calls, with expected call steps and results. Updated the execution
+  chart and related guides for v0.1.2.
+
+### Upgrading from v0.1.1
+
+- **Upgrade:** To retain the previous hard six-call ceiling, set both `max_calls=6`
+  and `max_call_limit=6`. Handle `limit_reached` in your application.
+- **Remaining limits:** Model choices can still be wrong. This remains one intent
+  per request; interrupted chains are not fully preserved, and reply templates
+  show the last matching result rather than automatically combining all results.
+
 ## v0.1.1
 
 - **Changed — Default session storage:** v0.1.0 automatically created an in-memory

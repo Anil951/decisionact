@@ -17,7 +17,7 @@ function Section({ id, children }) {
 export default function Overview() {
   return <>
     <section className="hero">
-      <div className="eyebrow"><span className="status-dot" />Python agent framework · v0.1.1</div>
+      <div className="eyebrow"><span className="status-dot" />Python agent framework · v0.1.2</div>
       <h1>Every action is a <em>decision.</em></h1>
       <p className="hero-subtitle">Decision-Model-Driven Execution for Structured Agent Workflows</p>
     </section>
@@ -41,19 +41,22 @@ export default function Overview() {
       <div className="guide-grid">{cards.map(([slug, title, icon, text]) => <Link className="guide-card" to={`/${slug}`} key={slug}>
         <div className="card-top"><Icon name={icon} /><Icon name="arrow" /></div><strong>{title}</strong><p>{text}</p>
       </Link>)}</div>
-      <Section id="available-now">Available in v0.1.1 <span className="tag">Latest version</span></Section>
-      <p>One agent handles one intent per message. An intent can involve several tool calls, missing-input questions, and approval steps.</p>
+      <Section id="available-now">Available in v0.1.2 <span className="tag">Latest version</span></Section>
+      <p>One agent handles one intent per message. A turn can repeat a tool with separate inputs, use earlier tool results in later calls, and pause for missing inputs or approval.</p>
       <ul>
         <li>Jev and Cloudflare Clef decision-model adapters.</li>
         <li>Python tools with described parameters, intent selection, and predefined outcome replies.</li>
         <li>Conversation memory and SQLite session checkpoints.</li>
         <li>Middleware hooks and human approval before selected actions.</li>
         <li>Turn results with tool calls and decision traces.</li>
-        <li>Order-support and flight-desk example agents.</li>
+        <li>Structured decision state and built-in guidance for repeated calls and dependencies.</li>
+        <li>One recheck for low-confidence input choices, with the same confidence threshold.</li>
+        <li>Renewable call allowances of six, bounded by a hard cap of 24 executions by default.</li>
+        <li><Link to="/calculator">Calculator</Link>, order-support and flight-desk examples.</li>
       </ul>
       <div className="note"><strong>Decisions are probabilistic. Your tools enforce the rules.</strong><p>Validate business inputs and permissions inside your Python functions. Low confidence can lead to a follow-up question or a rephrasing request. See the <Link to="/api-reference#operational-limits">operational limits</Link> before integrating external actions.</p></div>
       <Section id="coming-next">Room to grow</Section>
-      <p>Future versions are planned to support broader workflows. These capabilities are not included in v0.1.1.</p>
+      <p>Future versions are planned to support broader workflows. These capabilities are not included in v0.1.2.</p>
       <div className="roadmap"><span className="tag">Single-agent, multi-intent</span><span className="tag">Multi-agent workflows</span></div>
     </div>
   </>;

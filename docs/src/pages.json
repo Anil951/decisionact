@@ -86,6 +86,13 @@
     "file": "content/execution-flow.md"
   },
   {
+    "slug": "calculator",
+    "title": "Calculator",
+    "group": "Examples",
+    "icon": "examples",
+    "file": "content/calculator.md"
+  },
+  {
     "slug": "order-agent",
     "title": "Order support agent",
     "group": "Examples",

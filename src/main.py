@@ -33,8 +33,8 @@ their defaults:
 
   Agent(tools=[...], intents=INTENTS, outcomes=OUTCOMES, max_calls=10, max_asks=3)
 
-  max_calls        (6)   tool calls per turn; stops endless tool loops. When reached, the
-                         loop ends and the outcome is decided from the results so far.
+  max_calls        (6)   tool executions per allowance; a Noul can grant another allowance.
+  max_call_limit   (24)  absolute executions per turn, including retries; never renewed.
   max_param_tries  (3)   values a tool may reject for one input (e.g. "order not found")
                          before the agent stops guessing and asks the user to type it.
   max_candidates   (40)  options in the sliding-window Choice; keeps the decision request small.
@@ -56,7 +56,8 @@ from .middleware import Interrupt, Middleware, PendingApproval
 from .models import DecisionModel, LowConfidence, decision_log
 
 # Default limits; an agent can override any of them: Agent(..., max_calls=10, max_asks=3)
-MAX_CALLS = 6          # tool calls per turn
+MAX_CALLS = 6          # tool calls per allowance
+MAX_CALL_LIMIT = 24    # absolute total tool calls, including retries
 MAX_PARAM_TRIES = 3    # values a tool may reject before asking the user to type the value
 MAX_CANDIDATES = 40    # options in the sliding-window Choice
 WINDOW = 3             # sliding window: candidates are every 1..WINDOW-word span
@@ -67,6 +68,8 @@ MESSAGES = {  # the agent's own wording, filled from the input's description
     "ask_value": "I need the {name} ({desc}). Please type it.",
     "ask_option": "Please tell me the {name}: {options}.",
     "stopped": "Sorry, I couldn't complete that. Please try again.",
+    "limit_reached": "Execution stopped after {calls} tool calls. {reason} "
+                     "Some requested work may remain unfinished.",
 
 }
 
@@ -160,6 +163,12 @@ class _Ask(Exception):
         self.text, self.kind = text, kind
 
 
+class _CallLimit(Exception):
+    """End execution explicitly when the hard cap or a declined allowance stops work."""
+    def __init__(self, calls, reason):
+        self.calls, self.reason = calls, reason
+
+
 @dataclass
 class TurnResult:
     """Everything that happened in one turn; agent.turn() returns it.
@@ -171,7 +180,8 @@ class TurnResult:
     outcome     the outcome whose reply was sent, or "rephrase" (a decision was too unsure),
                 "asking" (a tool input is missing, the reply is the question) or "stopped"
                 (the same question was asked max_asks times) or "awaiting_approval" (a person must
-                approve a tool call first, see decisionact.middleware)
+                approve a tool call first, see decisionact.middleware), or "limit_reached"
+                (the hard cap or a declined extension stopped further execution)
     tool_calls  [{"tool", "inputs", "output"}] in the order they ran
     decisions   [{"step", "type", "answer", "confidence", ...}] in the order they were made;
                 for a noul "answer" is the probability of yes; a choice also has
@@ -188,12 +198,13 @@ class TurnResult:
     decisions: list = field(default_factory=list)
     paused: dict | None = None
     pending_approval: PendingApproval | None = None
+    limit_reason: str | None = None  # "hard_limit" or "continuation_declined"
 
 
 class Session:
     def __init__(self):
         self.history = []        # [(role, text)]; the current user message is last
-        self.slots = {}          # inputs resolved for the current request
+        self.slots = {}          # inputs resolved for the current tool invocation
         self.rejected = {}       # input -> values a tool rejected
         self.attempts = {}       # input -> rejected-value count
         self.exact_wait = set()  # inputs we asked the user to type exactly
@@ -201,16 +212,25 @@ class Session:
         self.paused = None       # tool call stopped for a missing input:
                                  #   {intent, tool, input, question, asks}
         self.resumed = None      # the paused call being continued in this turn
+        self.execution_message = None  # transient original request while approval resumes
         self.pending_approval = None  # tool call waiting for a person's approval:
-                                 #   {intent, tool, inputs, calls, waiting_reply, rejected_outcome}
+                                 #   {intent, tool, inputs, calls, request_message,
+                                 #    waiting_reply, rejected_outcome}
         self.last = {}           # input -> last value that worked ("cancel it")
+
+    @property
+    def request_message(self):
+        """Active request for decisions/extraction; history keeps actual approval commands."""
+        return (self.execution_message if self.execution_message is not None
+                else self.history[-1][1])
 
     # ---------- saving (checkpointers) ----------
     VERSION = 1  # format of to_dict(); bump when it changes
 
     def to_dict(self):
         """Everything needed to continue the conversation, as JSON-ready data.
-        `resumed` is not saved: it only lives during one turn."""
+        `resumed` and `execution_message` only live during one turn. The original
+        request needed across approval turns is saved inside pending_approval."""
         return {"v": self.VERSION,
                 "history": [list(m) for m in self.history],
                 "slots": dict(self.slots),
@@ -291,7 +311,8 @@ class Agent:
     middleware: a list of Middleware (decisionact.middleware), called in order, e.g.
             [HumanInTheLoopMiddleware(approvals={...})]. None (default) = no middleware.
     Optional limits (keyword only, defaults in brackets):
-      max_calls=6        tool calls per turn
+      max_calls=6        executions per allowance, renewed by a continuation Noul
+      max_call_limit=24  absolute executions per turn, including retries
       max_param_tries=3  values a tool may reject for one input before asking the user
       max_candidates=40  options in the sliding-window Choice
       window=3           longest sliding-window candidate, in words
@@ -300,7 +321,8 @@ class Agent:
 
     def __init__(self, tools, intents, outcomes, model, *, max_calls=MAX_CALLS,
                  max_param_tries=MAX_PARAM_TRIES, max_candidates=MAX_CANDIDATES,
-                 window=WINDOW, max_asks=MAX_ASKS, memory=None, checkpointer=None, middleware=None):
+                 window=WINDOW, max_asks=MAX_ASKS, memory=None, checkpointer=None, middleware=None,
+                 max_call_limit=MAX_CALL_LIMIT):
         if not isinstance(model, DecisionModel):
             raise TypeError("model must be a DecisionModel, e.g. SystemOneModel(api_key)")
         if memory is not None and not isinstance(memory, Memory):
@@ -316,12 +338,16 @@ class Agent:
         self.memory = memory or NoMemory()
         self.checkpointer = checkpointer
         self._sessions = {}  # process-local session snapshots when checkpointing is disabled
-        limits = {"max_calls": max_calls, "max_param_tries": max_param_tries,
+        limits = {"max_calls": max_calls, "max_call_limit": max_call_limit,
+                  "max_param_tries": max_param_tries,
                   "max_candidates": max_candidates, "window": window, "max_asks": max_asks}
         for name, value in limits.items():
             if not isinstance(value, int) or isinstance(value, bool) or value < 1:
                 raise ValueError(f"{name} must be a positive integer, got {value!r}")
+        if max_call_limit < max_calls:
+            raise ValueError("max_call_limit must be greater than or equal to max_calls")
         self.max_calls, self.max_param_tries = max_calls, max_param_tries
+        self.max_call_limit = max_call_limit
         self.max_candidates, self.window, self.max_asks = max_candidates, window, max_asks
         self.tools = {}
         for f in tools:
@@ -395,8 +421,17 @@ class Agent:
                 result.reply, result.outcome = a.text, a.kind
             except Interrupt as i:                  # a middleware stopped the turn
                 result.reply, result.outcome = i.reply, "awaiting_approval"
+            except _CallLimit as limit:
+                sess.slots.clear()
+                result.outcome, result.limit_reason = "limit_reached", limit.reason
+                reason = (f"The maximum of {self.max_call_limit} executions was reached."
+                          if limit.reason == "hard_limit" else
+                          "The continuation check did not grant another call allowance.")
+                result.reply = _render(MESSAGES["limit_reached"],
+                                       {"calls": limit.calls, "reason": reason})
         finally:
             decision_log.reset(token)
+            sess.execution_message = None
         result.paused = copy.deepcopy(sess.paused)
         result.pending_approval = PendingApproval.from_saved(sess.pending_approval)
         sess.history.append(("agent", result.reply))
@@ -462,6 +497,9 @@ class Agent:
             sess.slots.clear()
             return _render(self.outcomes[outcome].reply, facts)
         sess.slots = dict(pending["inputs"])         # all inputs are known: no asking again
+        # New approvals preserve the request independently of conversation memory.
+        # Older saved approvals omit this field and retain the legacy message fallback.
+        sess.execution_message = pending.get("request_message")
         outcomes = {o: self.outcomes[o] for o in spec.outcomes}
         calls, outcome = steps.tool_loop(self, sess, pending["intent"], spec, outcomes,
                                          pending["tool"], result.tool_calls, calls, approved=True)

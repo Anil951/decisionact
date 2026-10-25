@@ -143,3 +143,9 @@ probabilities. Checkpointing is disabled by default. Conversations stay in plain
 Python memory for the lifetime of that agent, without creating a SQLite database.
 
 Next: [Tools](tools.md).
+
+For several operations within one message, follow the [calculator example](calculator.md).
+v0.1.2 resolves inputs for each new invocation and can offer earlier results as
+later input choices. The defaults are six executions per renewable allowance and
+24 total executions. Check `result.outcome` for `asking`, `rephrase` or
+`limit_reached`; inspect `result.limit_reason` when a budget stops execution.

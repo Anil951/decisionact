@@ -2,7 +2,8 @@
 """TypeSafe Jev through the official SDK (typesafe_sdk). base_url lets the same SDK reach
 any server that speaks TypeSafe's /v1/systemone API (e.g. a self-hosted compatible model).
 """
-from .base import DecisionModel, DecisionModelError, DecisionModelNotFound, _model_unavailable
+from .base import (DEFAULT_MIN_CONF, DecisionModel, DecisionModelError,
+                   DecisionModelNotFound, _model_unavailable)
 
 
 class SystemOneModel(DecisionModel):
@@ -10,7 +11,8 @@ class SystemOneModel(DecisionModel):
 
     name = "systemone"
 
-    def __init__(self, api_key=None, model="jev-latest", base_url=None, min_conf=0.6, timeout=30.0):
+    def __init__(self, api_key=None, model="jev-latest", base_url=None,
+                 min_conf=DEFAULT_MIN_CONF, timeout=30.0):
         if not isinstance(api_key, str) or not api_key.strip():
             raise DecisionModelNotFound("SystemOneModel: API key is required")
         super().__init__(model, min_conf)

@@ -114,6 +114,21 @@ using it has finished.
 
 ## Behavior and limitations
 
+Current-turn execution history and conversation memory serve different purposes.
+In v0.1.2, next-tool and input decisions can see calls made inside the active loop
+even with `NoMemory()`. Their `tool_calls_this_turn` entries identify each tool,
+arguments and result. Eligible scalar results can become later input choices.
+Conversation memory still determines visibility of earlier messages; no memory
+setting was changed by this feature.
+
+A missing-input pause retains the pending tool and partial inputs, but does not
+fully preserve the original multi-operation request and its full execution trace
+for subsequent turns. New approval pauses save the original request and prior
+calls, so resumed decisions and input extraction do not depend on conversation
+memory to recover that request. Their restored execution count does not reset
+the tool-call limits. Neither mechanism provides
+an automatic resumable operation plan after a call-limit stop.
+
 - `k` must be a positive integer or `None`.
 - Memory chooses context; checkpoints store the full session independently.
 - Serialize concurrent turns for the same session in your application.

@@ -10,7 +10,7 @@ DecisionAct is a Python agent framework for building task-focused agents with
 predefined intents, tools, and outcomes (with reply templates). Decision models
 interpret user requests and select actions; your Python functions execute them.
 
-These guides describe the v0.1.1 API in this repository. This version supports
+These guides describe the v0.1.2 API in this repository. This version supports
 single-agent, single-intent workflows: a message selects one intent, which can
 involve several tool calls. Multi-intent and multi-agent workflows are planned.
 
@@ -33,6 +33,7 @@ involve several tool calls. Multi-intent and multi-agent workflows are planned.
 
 ## Examples
 
+- [Calculator](content/calculator.md)
 - [Order support agent](content/order-agent.md)
 - [Flight desk agent](content/flight-desk-agent.md)
 
@@ -49,12 +50,14 @@ Quickstart and example pages contain the complete application walkthroughs.
 
 ## Repository examples
 
+- [Calculator](https://github.com/Anil951/decisionact/blob/main/examples/calculator.py): repeated calls,
+  dependent calculations, mixed arithmetic tools and commented query traces.
 - [Order support](https://github.com/Anil951/decisionact/blob/main/examples/order_agent.py): order lookup, listing, cancellation,
   and approval.
 - [Flight desk](https://github.com/Anil951/decisionact/blob/main/examples/flight_desk_agent.py): flight search, booking, changes,
   cancellation, baggage, and seats.
 
-Both examples use fictional, in-memory business data. Their model requests use
+The order and flight examples use fictional, in-memory business data. All model requests use
 your provider account. API credentials are not included with the package.
 
 The installed library is imported as `decisionact`, even though this repository

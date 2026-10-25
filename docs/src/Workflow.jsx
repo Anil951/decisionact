@@ -9,12 +9,12 @@ const steps = [
   },
   {
     label: '02 / Prepare', title: 'Choose tools & params',
-    text: "Use the selected intent's context to choose tools and resolve their params. Ask for missing inputs when needed.",
+    text: "Use intent context, the request and completed calls to choose the next tool. Resolve inputs for each invocation; recheck a low-confidence input once before asking.",
     options: [],
   },
   {
     label: '03 / Act', title: 'Execute Python functions',
-    text: 'Your functions run the tools. Use their results to continue with more tool calls when needed.',
+    text: 'Your functions run sequentially. Record each call and result, then decide whether to repeat or choose another tool. Renew call allowances within the hard cap.',
     options: [
       { title: 'Middleware', href: '/middleware-and-approval#define-middleware', text: 'Run hooks before and after tool execution.' },
       { title: 'Human approval', href: '/middleware-and-approval#add-human-approval', text: 'Pause selected actions for review before they run.' },

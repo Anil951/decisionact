@@ -33,6 +33,14 @@ for human review.
 
 ## Add human approval
 
+For a complete agent implementation, see the
+[order agent's cancellation-with-approval example](order-agent.md#cancellation-with-approval).
+When the user requests cancellation, the agent looks up the order, then HITL
+middleware pauses `cancel_order` before execution. `/approve` permits cancellation;
+`/reject` leaves the order unchanged. The example includes the
+[complete middleware configuration](order-agent.md#complete-code), messages,
+tool steps and expected replies.
+
 This complete, standalone example saves a title in an in-memory notes list only
 after approval. It uses Jev, so set `TYPESAFE_API_KEY` before running it. The demo
 acts as the reviewer and immediately approves; an application can wait for a
@@ -112,6 +120,17 @@ A chat interface can alternatively send `/approve` or `/reject [reason]` through
 `agent.turn(..., session_id=...)`. Matching is case-insensitive and requires no
 model decision. Other messages return the waiting reply without running the tool.
 
+Pending approvals save the original user request alongside the selected call's
+inputs and earlier tool results. After approval, both decision state and input
+extraction use that saved request, so remaining requested calls can continue even
+with `NoMemory()`. Each later approval retains the same request. `/approve` stays
+in conversation history as the approval command; conversation memory remains
+unchanged. The active request is cleared after the execution attempt finishes.
+
+The request is also retained through SQLite checkpoint restoration. Older saved
+approvals without this optional field can still resume using the previous
+message behavior, but do not gain reliable original-request recovery.
+
 ## Persistence and access
 
 Checkpointing is disabled by default; pending approvals stay in Python memory
@@ -130,6 +149,10 @@ separate reviewer integration with `resume()`.
 - Middleware controls the next tool call; it does not undo earlier actions.
 - Approving a call skips approval for that call when it resumes; later tools can
   still require their own approvals.
+- Repeated calls each pass through middleware. Approval of one invocation does
+  not approve every later call to the same tool. Saved approval continuation
+  retains earlier calls and execution totals for the call allowance/hard cap;
+  approval itself does not count as a tool execution.
 - The demo's `NOTES` list resets with the process. Conversation checkpoints do
   not persist a tool's business data.
 

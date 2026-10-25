@@ -27,7 +27,7 @@ from contextvars import ContextVar
 
 import httpx
 
-DEFAULT_MIN_CONF = 0.6
+DEFAULT_MIN_CONF = 0.5
 
 
 class LowConfidence(Exception):

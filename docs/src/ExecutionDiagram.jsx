@@ -37,9 +37,9 @@ const loopHeading = spreadRect({x:740,y:596,width:466,height:42});
 const parameterHeading = spreadRect({x:740,y:1616,width:440,height:60},true);
 const parameterSummary = {
   id:'parameters',kind:'group',x:graphNodes[0].x,y:parameterBounds.y,width:graphNodes[0].width,height:180,
-  title:'2b. Resolve tool parameters',state:'Current parameter + collected inputs',
+  title:'2b. Resolve tool parameters',state:'Current invocation + collected inputs + prior calls/results',
   call:'Resolve categories, text and tool-output candidates.',
-  note:'Expand to see each parameter-resolution step.',
+  note:'Low-confidence input: one recheck, same choices and threshold.',
 };
 
 function cardPort(node,side,fraction = .5) {
@@ -293,8 +293,8 @@ export default function ExecutionDiagram() {
     <h2 id="framework-workflow">Framework workflow</h2>
     <p className="execution-help">Use the arrows to expand the tool loop and its parameter-resolution steps. Select a step to highlight its connected arrows.</p>
     <div className="execution-shape-key" aria-label="Card shapes"><span className="logic">Python logic: oval</span><span className="decision">Decision-model call: rectangular</span><span className="fallback">Framework fallback: rounded trapezoid</span></div>
-    <p className="execution-help execution-confidence-note">When a decision-model Choice confidence is below <code>model.min_conf</code>, the framework sends its default rephrase message shown below. Parameter choices ask for the missing input instead.</p>
-    <p className="execution-help"><code>max_calls</code> limits tool executions per turn (default: 6, including retries). Reaching it stops further calls, even if work remains. <Link to="/api-reference#tool-call-limit">Change it when creating your Agent.</Link></p>
+    <p className="execution-help execution-confidence-note">A low-confidence input Choice gets one recheck with the same choices and <code>model.min_conf</code>, then asks if still uncertain. Intent, tool and outcome Choices can return the rephrase message directly, even after successful execution.</p>
+    <p className="execution-help"><code>max_calls=6</code> sets a renewable allowance; a Noul can extend it up to <code>max_call_limit=24</code> total executions, including retries. A declined extension or further work at the hard cap returns <code>limit_reached</code>. <Link to="/api-reference#tool-call-limit">Configure these limits.</Link></p>
     <div className="execution-arrow-key" aria-label="Arrow styles">
       <span><svg viewBox="0 0 64 16" aria-hidden="true"><path d="M2 8 H60" /><path className="execution-key-arrowhead" d="M52 3 L61 8 L52 13 Z" /></svg>Solid arrows follow execution.</span>
       <span><svg viewBox="0 0 64 16" aria-hidden="true"><path className="execution-key-dashed" d="M2 8 H60" /><path className="execution-key-arrowhead" d="M52 3 L61 8 L52 13 Z" /></svg>Dashed arrows show bypasses and pauses.</span>
@@ -321,7 +321,7 @@ export default function ExecutionDiagram() {
           <button ref={element => { if (element) cardElements.current.set(item.id,element); else cardElements.current.delete(item.id); }} style={item.kind === 'fallback' ? {height:cardSizes[item.id]?.height ?? 'auto'} : undefined} type="button" className={`execution-graph-node execution-node-${item.kind}${item.id === selected ? ' selected' : ''}`} onClick={() => choose(item.id)} aria-pressed={item.id === selected}>
             {item.id === 'param-kind' && <small>For each parameter of the selected tool</small>}
             <strong>{item.title}</strong>
-            <span><b>State</b> {item.state}</span>
+            <span>[<b>State:</b> {item.state}]</span>
             <span><b>{item.kind === 'decision' || item.kind === 'group' ? 'Call' : 'Action'}</b> {item.call}</span>
             {item.note && <small>{item.note}</small>}
           </button>

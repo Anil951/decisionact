@@ -4,7 +4,7 @@ export const legacyRoutes = {
     default: '/tools',
     '#choose-the-model': '/models',
     '#intents-outcomes-and-templates': '/outcomes#fill-templates-from-tool-results',
-    '#add-cancellation-to-the-order-agent': '/order-agent#add-the-cancellation-tool',
+    '#add-cancellation-to-the-order-agent': '/order-agent#complete-code',
     '#define-tools': '/tools#define-a-tool',
     '#describe-parameters': '/parameters#configuration',
     '#common-mistakes': '/tools#behavior-and-limitations',
@@ -13,7 +13,7 @@ export const legacyRoutes = {
     default: '/tools',
     '#define-tools': '/tools#define-a-tool',
     '#describe-parameters': '/parameters#configuration',
-    '#add-cancellation-to-the-order-agent': '/order-agent#add-the-cancellation-tool',
+    '#add-cancellation-to-the-order-agent': '/order-agent#complete-code',
     '#common-mistakes': '/tools#behavior-and-limitations',
   },
   'intents-and-outcomes': {
@@ -23,7 +23,7 @@ export const legacyRoutes = {
     '#define-outcomes': '/outcomes#define-an-outcome',
     '#templates-and-returned-values': '/outcomes#fill-templates-from-tool-results',
     '#register-the-configuration': '/intents#using-intents-in-an-agent',
-    '#extend-an-intent-with-another-action': '/order-agent#extend-the-quickstart-with-cancellation',
+    '#extend-an-intent-with-another-action': '/order-agent#complete-code',
     '#limits-and-common-mistakes': '/intents#configuration',
   },
   'memory-and-approval': {

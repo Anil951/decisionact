@@ -85,6 +85,13 @@ fields for the current turn. In one call, an output field overrides an input wit
 the same name. Later calls override earlier values with the same name. Memory
 history is not automatically merged into these template fields.
 
+For repeated calls returning `{"result": ...}`, `reply="Result: {result}"` shows
+the last result. For example, two independent additions producing `9` and `13`
+reply `Result: 13`; the ordered `result.tool_calls` contains both. There is no
+automatic combined-results summary. Return suitable summary fields from your
+application's tools or use the trace in your interface when every action must be
+shown. See [Calculator](calculator.md).
+
 A non-dictionary tool result is still a tool result, but does not contribute named
 output fields to the template. Return a dictionary when the reply needs those fields.
 
@@ -206,7 +213,7 @@ The engine uses an accepted outcome from tool evaluation when available.
 Otherwise, it selects a sole allowed outcome without an additional final Choice,
 or asks the model to choose among multiple allowed outcomes. After-tool evaluation
 can still include an outcome Choice even when only one ending is allowed. Model
-Choices use `min_conf`, which defaults to `0.6`; low confidence can produce a
+Choices use `min_conf`, which defaults to `0.5`; low confidence can produce a
 rephrasing request instead of an ordinary outcome reply.
 
 Handled turns can also return framework status values rather than a registered
@@ -218,9 +225,21 @@ outcome key:
 | `asking` | A tool input needs a follow-up answer. |
 | `stopped` | The same paused input exceeded the question limit. |
 | `awaiting_approval` | Middleware interrupted execution, such as a tool waiting for review. |
+| `limit_reached` | Further execution reached the hard cap or the continuation check declined another allowance. |
 
 These statuses do not need declarations in your outcomes dictionary. Inspect
 `result.paused` or `result.pending_approval` when handling the corresponding wait.
+
+For `limit_reached`, `result.limit_reason` is `hard_limit` or
+`continuation_declined`; completed calls remain in the trace. Its framework reply
+states that work is unfinished and bypasses normal outcome selection.
+
+Input repair has priority over finishing with a tool-error outcome. For example,
+a rejected seat or baggage value may lead to `asking` for a corrected input even
+when the model identified the matching error outcome. Also, low-confidence
+outcome selection can return `rephrase` after a successful tool execution. The
+input-confidence recheck does not apply to outcomes; inspect actual tool effects
+before retrying an action because its confirmation was unclear.
 
 For human approval, rejection uses the rule's registered rejection outcome
 directly, without a model outcome choice. It need not appear in `Intent.outcomes`.

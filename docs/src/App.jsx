@@ -52,7 +52,7 @@ function Sidebar({ page, mobile, open, onNavigate }) {
         {item.sections && <div className="nav-subnav">{item.sections.map((section) => <Link key={section.anchor} className="nav-sublink" to={`${item.url}#${section.anchor}`} aria-current={item.slug === page.slug && location.hash === `#${section.anchor}` ? 'location' : undefined} onClick={onNavigate}>{section.title}</Link>)}</div>}
       </div>)}
     </div>)}</nav>
-    <div className="sidebar-footer"><Link className="version" to="/changelog" onClick={onNavigate}><span className="status-dot" />v0.1.1 <span className="tag">Latest</span></Link>Every action is a decision.</div>
+    <div className="sidebar-footer"><Link className="version" to="/changelog" onClick={onNavigate}><span className="status-dot" />v0.1.2 <span className="tag">Latest</span></Link>Every action is a decision.</div>
   </aside>;
 }
 
@@ -149,7 +149,7 @@ export default function App() {
         </div>
         <Outlet />
         {index >= 0 && <PageNavigation index={index} />}
-        <footer className="page-footer"><span>© 2026 AnilKumarBorige · MIT License</span><a href={`${REPO}/issues`} target="_blank" rel="noopener noreferrer">Help improve these docs ↗</a></footer>
+        <footer className="page-footer"><span>© 2026 DecisionAct · MIT License</span><a href={`${REPO}/issues`} target="_blank" rel="noopener noreferrer">Help improve these docs ↗</a></footer>
       </main>
       {index >= 0 && <TableOfContents content={content} page={page} />}
     </div>

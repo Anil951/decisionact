@@ -136,6 +136,7 @@ class HumanInTheLoopMiddleware(Middleware):
         waiting = _render(rule.waiting, {**_facts(calls), **args})
         sess.pending_approval = {"intent": intent, "tool": tool.name, "inputs": dict(args),
                                  "calls": copy.deepcopy([list(c) for c in calls]),
+                                 "request_message": sess.request_message,
                                  "waiting_reply": waiting,
                                  "rejected_outcome": rule.rejected_outcome}
         raise Interrupt(waiting)

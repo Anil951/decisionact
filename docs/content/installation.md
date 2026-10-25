@@ -43,7 +43,19 @@ uv run python -c "import decisionact; print(decisionact.__version__)"
 ```
 
 Importing the package does not contact a model provider. The installed version
-is printed; the current documented API is v0.1.1.
+is printed; the current documented API is v0.1.2.
+
+To run this repository's current examples against the local framework instead of
+an older installed release, install from the repository root:
+
+```bash
+python -m pip install -e ".[examples]"
+```
+
+The `examples` extra includes `python-dotenv`. The calculator then runs with
+`python -m examples.calculator "Add 4+5 and add 6+7"`. See the
+[v0.1.2 upgrade notes](../CHANGELOG.md#upgrading-from-v011) for the changed
+`max_calls` behavior and new `max_call_limit`.
 
 ## Configure a decision model
 

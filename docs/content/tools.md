@@ -190,8 +190,10 @@ Enforce validation and permissions before performing an external action.
 - Optional inputs require both `optional=True` and a Python default.
 - Type annotations do not convert input values. Convert and validate inside the function.
 - Agent tool names and intent tool references must match exactly.
-- Tool calls are synchronous. The default tool-loop limit is six calls per turn,
-  configurable with `Agent(max_calls=...)`.
+- Tool calls are sequential. A turn can call different permitted tools or repeat
+  the same tool with independently resolved inputs. The default allowance is six
+  executions (`max_calls`), renewable by a continuation Noul up to the absolute
+  cap of 24 (`max_call_limit`). Retries count toward both.
 - Approval can stop a selected function before it runs. Direct function or
   `Tool.run()` calls do not apply that middleware.
 - A later provider failure does not undo an earlier tool effect. Use idempotent
@@ -205,3 +207,4 @@ Enforce validation and permissions before performing an external action.
 - [Middleware and approval](middleware-and-approval.md): hooks before execution.
 - [tool and Tool API reference](api-reference.md#tools-inputs-intents-and-outcomes): signatures and validation.
 - [Execution flow](execution-flow.md): the full call sequence.
+- [Calculator](calculator.md): repeated calls and dependencies across four tools.

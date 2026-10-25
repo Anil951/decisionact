@@ -2,7 +2,7 @@
 
 [Documentation](../README.md) / API reference
 
-This reference covers the public API in the repository's v0.1.1 implementation.
+This reference covers the public API in the repository's v0.1.2 implementation.
 Python signatures determine which arguments are required. Examples below are small
 fragments; names such as `agent`, `model`, and `INTENTS` refer to objects built in
 the [quickstart](quickstart.md) or [approval guide](middleware-and-approval.md).
@@ -14,7 +14,7 @@ Import from `decisionact`:
 ```text
 Agent(
     tools, intents, outcomes, model, *,
-    max_calls=6, max_param_tries=3, max_candidates=40,
+    max_calls=6, max_call_limit=24, max_param_tries=3, max_candidates=40,
     window=3, max_asks=2,
     memory=None, checkpointer=None, middleware=None,
 )
@@ -29,21 +29,28 @@ Agent(
 | `memory` | A `Memory` instance; defaults to `NoMemory()`. |
 | `checkpointer` | Optional `Checkpointer`. Omitted or `None` disables checkpointing; sessions stay in Python memory for that agent instance. |
 | `middleware` | Iterable of `Middleware` instances, called in order; defaults to none. |
-| `max_calls` | Maximum tool calls in the tool loop before proceeding to an outcome. |
+| `max_calls` | Tool executions per allowance before checking whether to extend. Default: `6`. |
+| `max_call_limit` | Absolute total tool executions, including retries. Default: `24`; must be at least `max_calls`. |
 | `max_param_tries` | Rejected candidate values per input before asking for an exact value. |
-| `max_candidates` | Maximum word-span candidates considered when extracting an input. |
+| `max_candidates` | Caps word-span candidates and the separately collected distinct output candidates per parameter. Default: `40`; it is not a combined cap on every candidate source. |
 | `window` | Maximum number of words in a candidate span. |
 | `max_asks` | Maximum missing-input questions for the same paused input before stopping. |
 
-All five limits must be positive integers; booleans are rejected. Construction
+All limits must be positive integers; booleans are rejected. Construction
 validates registered tools, intent/outcome objects, referenced names, and middleware.
 Invalid configuration raises `TypeError` or `ValueError`. It does not make a model
 request. Business-rule checks belong inside your tools.
 
 ### Tool-call limit
 
-`max_calls` limits tool executions per turn across all tools, including retries.
-It defaults to `6`. Change it in your application's `Agent` constructor:
+`max_calls` sets the size of a call allowance across all tools, including retries.
+It defaults to `6`. If more work is requested after that allowance is used, a Noul
+receives the user message, intent context, complete current execution trace, and
+budget counters, and decides whether to grant another allowance. Completed calls
+are retained; only the allowance boundary advances.
+
+`max_call_limit` is an absolute cap, defaulting to `24`. The model cannot extend
+it. Change either value in your application's `Agent` constructor:
 
 ```python
 agent = Agent(
@@ -51,12 +58,46 @@ agent = Agent(
     intents=INTENTS,
     outcomes=OUTCOMES,
     model=model,
-    max_calls=20,
+    max_calls=6,
+    max_call_limit=24,
 )
 ```
 
-Reaching the limit stops further tool calls and proceeds to outcome selection;
-it does not mean the task is complete or automatically resume unfinished work.
+The final allowance is clipped to the remaining hard-limit capacity. No extension
+is requested when the post-tool decision already indicates completion, including
+completion on the last permitted call.
+
+If further execution is needed at the hard cap, or an extension is declined, the
+framework returns `outcome="limit_reached"` with an explicit unfinished-work reply.
+`result.limit_reason` is `"hard_limit"` or `"continuation_declined"`. Ordinary
+outcome selection does not turn these stops into success. Completed calls remain
+in the trace; this does not add automatic continuation after a limit stop.
+
+In v0.1.1, `max_calls` was the turn's execution ceiling. To preserve that ceiling
+in v0.1.2, set `max_calls` and `max_call_limit` to the same value. Approval resumes
+retain prior executions and the granted allowance; granting another allowance
+does not clear the trace or reset the execution count.
+
+### Repeated calls and decision state
+
+One selected intent may invoke the same tool several times or mix its permitted
+tools. New invocations resolve fresh inputs; wrong-input retries keep sibling
+inputs, and paused calls keep partial inputs. JSON state separates
+`framework_instructions`, `user_message`, `intent`, `conversation_history` and
+`tool_calls_this_turn`. Each observation has `call_id`, `tool`, `arguments` and
+`result`; input decisions also have `current_invocation` with the tool, input,
+resolved sibling values, next call number and prior calls of that tool.
+
+Eligible earlier output scalars become source-labelled input candidates, subject
+to regex constraints and candidate limits. This is active-loop context, not a
+durable action plan or duplicate-execution guard. State field details describe
+the current implementation; applications should use public `TurnResult` fields
+for traces. See [Calculator](calculator.md) and [execution flow](execution-flow.md).
+
+Low-confidence text/categorical input selection gets one focused recheck with
+unchanged choices and threshold. A confident `none`, or uncertainty after the
+recheck, asks for the input. There is no new recheck configuration argument and
+no matching recheck for intent/tool/outcome selection.
 
 ### `agent.turn(message, session_id="default")`
 
@@ -89,6 +130,12 @@ result = agent.resume(session_id="customer-1", decision=approve())
 
 This is for human approval, not missing-input continuation. To supply a missing
 parameter, send another message through `turn()`.
+
+New pending approvals retain the original request for resumed decisions and input
+extraction, independently of conversation memory. This applies to both `resume()`
+and chat approval commands, repeated approval pauses and checkpoint restoration.
+The request is stored in saved approval data; the public `PendingApproval` fields
+are unchanged. Older records without it remain readable with legacy message behavior.
 
 ### `agent.pending_approval(session_id="default")`
 
@@ -153,8 +200,9 @@ normally do not construct it manually.
 | `decisions` | `[]` | Model decision entries, including step/type/answer and confidence where applicable. |
 | `paused` | `None` | Saved missing-input request, if any. |
 | `pending_approval` | `None` | `PendingApproval`, if a tool is waiting for review. |
+| `limit_reason` | `None` | `hard_limit` or `continuation_declined` when execution stops at a call allowance or cap. |
 
-Special outcome values are `rephrase`, `asking`, `stopped`, and
+Special outcome values are `rephrase`, `asking`, `stopped`, `limit_reached`, and
 `awaiting_approval`. There is no `error` field or automatic failed-turn recovery API
 in this version. `reply` can be printed directly; printing the whole dataclass
 shows the other fields too.
@@ -166,14 +214,14 @@ Import from `decisionact.models`:
 ```python
 SystemOneModel(
     api_key=None, model="jev-latest", base_url=None,
-    min_conf=0.6, timeout=30.0,
+    min_conf=0.5, timeout=30.0,
 )
 
 CloudflareModel(api_token=None, account_id=None, model="clef", **kw)
 ```
 
 `SystemOneModel` uses `typesafe_sdk`. `base_url` optionally selects a compatible
-endpoint. `CloudflareModel` uses `httpx`; its `**kw` accepts `min_conf=0.6` and
+endpoint. `CloudflareModel` uses `httpx`; its `**kw` accepts `min_conf=0.5` and
 `timeout=30.0`. Timeout values are in seconds. Both require provider credentials
 for actual requests; Clef additionally requires an account ID.
 
@@ -184,8 +232,8 @@ validation. Use valid settings and evaluate model behavior before production use
 ### DecisionModel and HTTP base
 
 ```python
-DecisionModel(model, min_conf=0.6)
-HttpDecisionModel(model, url, headers, min_conf=0.6, timeout=30.0)
+DecisionModel(model, min_conf=0.5)
+HttpDecisionModel(model, url, headers, min_conf=0.5, timeout=30.0)
 ```
 
 `DecisionModel` is the common provider interface. Custom adapters implement
@@ -330,7 +378,15 @@ and returns `None` for no saved approval. The framework calls this automatically
 
 ## Operational limits
 
-- v0.1.1 handles one intent per message. There are no `multi_intent` or router arguments.
+- v0.1.2 handles one intent per message. There are no `multi_intent` or router arguments.
+- Repeated-call input pairing, dependency selection and stopping are model
+  decisions; shared operands and ambiguous references can still be mishandled.
+- Trace call IDs do not implement idempotency or distinguish requested operations
+  through a durable planner. A hard cap bounds executions, not semantic correctness.
+- Missing-input continuation does not fully retain an interrupted multi-operation
+  request and its call trace. A limit stop has no automatic continuation API.
+- Later output fields overwrite earlier fields with the same name in reply
+  templates. A successful action can be followed by an outcome-confidence fallback.
 - Calls are synchronous. Serialize concurrent turns for the same session.
 - Templates control wording; tools must enforce business rules and permissions.
 - The database is not a transaction over external tool effects. A provider failure

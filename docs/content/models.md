@@ -15,7 +15,7 @@ from decisionact.models import SystemOneModel
 model = SystemOneModel(
     api_key=os.getenv("TYPESAFE_API_KEY"),
     model="jev-latest",
-    min_conf=0.6,
+    min_conf=0.5,
     timeout=30.0,
 )
 ```
@@ -36,7 +36,7 @@ model = CloudflareModel(
     api_token=os.getenv("CLOUDFLARE_API_TOKEN"),
     account_id=os.getenv("CLOUDFLARE_ACCOUNT_ID"),
     model="clef",
-    min_conf=0.6,
+    min_conf=0.5,
     timeout=30.0,
 )
 ```
@@ -81,9 +81,23 @@ the adapter is initialized.
 
 ## Confidence and timeouts
 
-`min_conf=0.6` sets the threshold for Choice decisions. Noul yes/no decisions use
+`min_conf=0.5` sets the threshold for Choice decisions. Noul yes/no decisions use
 their own threshold of `0.5` in the engine. `timeout` is measured in seconds.
 Evaluate confidence settings with representative requests for your provider.
+
+In v0.1.2, the framework gives a low-confidence text or categorical input Choice
+one focused recheck using the same options and `min_conf`. A confident `none`
+asks immediately; a second uncertain selection asks for the specific input.
+The trace records both attempts, with `/ recheck` on the second. This behavior
+does not retry intent, tool or outcome Choices, optional-input Nouls, or failed
+provider requests. A successful tool can therefore still be followed by a
+low-confidence outcome fallback. See [input rechecks](parameters.md#one-recheck-for-a-low-confidence-input).
+
+Providers continue to receive a state string. Framework-generated state is now
+JSON text separating instructions, user message, intent context, visible history
+and current-turn tool results. Execution guidance accompanies next-tool,
+post-tool and allowance-extension decisions; input guidance scopes each invocation.
+This does not change the provider adapter interface or add generated reasoning.
 
 ## Credentials and errors
 

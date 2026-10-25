@@ -22,12 +22,18 @@ uv add decisionact
 
 ## Versions
 
-Available releases: **v0.1.1 (latest)** and **v0.1.0**.
+Current source and documentation: **v0.1.2**. Earlier releases: **v0.1.1** and **v0.1.0**.
 
 See the [changelog](https://anil951.github.io/decisionact/changelog)
 for detailed release notes and upgrade guidance.
 
 ## Documentation
+
+v0.1.2 adds fresh inputs for repeated tool invocations, earlier-result input
+choices, structured decision state, one input-confidence recheck and renewable
+call allowances with a hard cap. See the
+[calculator example](https://anil951.github.io/decisionact/calculator) and
+[upgrade notes](https://anil951.github.io/decisionact/changelog#upgrading-from-v011).
 
 [Read the documentation](https://anil951.github.io/decisionact/)
 for the quickstart, agent-building guides, execution flow, and API reference.

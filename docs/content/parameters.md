@@ -213,8 +213,9 @@ are also shown, so later parameters can refer to the same operation.
 
 For example, `add 4+5 and add 6+7` can select `add` twice: the first invocation
 chooses `4` and `5`; the second uses the completed-call history to choose `6` and `7`.
-Intent context should tell the model to continue until every requested operation
-has been handled. The decision model still selects only from supplied choices;
+Built-in execution instructions guide continuation until requested operations
+have been handled, subject to the intent rules and execution limits. The decision
+model still selects only from supplied choices;
 it does not generate an action description or unrestricted arguments.
 
 Scalar values from earlier tool outputs in the running turn are also offered as
@@ -237,9 +238,28 @@ resolved inputs, and a paused call retains its partial inputs. Previously succes
 values remain available as candidates where supported, rather than being silently
 copied into a new call. Model selection is still probabilistic; the history and
 instructions do not guarantee correct pairing on every request. `Agent.max_calls`
-continues to bound execution. See `examples/repeated_add.py` for a live experiment.
+sets the allowance checked for renewal; `Agent.max_call_limit` bounds total
+execution. See the [calculator example](calculator.md) for complete queries and traces.
 
 ## Missing inputs and follow-up questions
+
+### One recheck for a low-confidence input
+
+Text-candidate and categorical input Choices get at most one additional selection
+attempt when the first raises `LowConfidence`. The second request has the same
+options and confidence threshold, plus focused guidance about the current call,
+independent repetitions and explicit dependencies. A confident `none` asks for
+the value immediately, without a recheck. If the recheck selects `none` or remains
+uncertain, the framework asks for that input and saves the partial call.
+
+Both attempts appear in `result.decisions`; the second step ends with `/ recheck`.
+Its state includes `input_recheck` with `attempt=1` and `max_rechecks=1`. This is a
+fixed framework behavior, not a new constructor parameter. It does not change
+`max_param_tries`, which counts tool-rejected values, or `max_asks`, which limits
+questions for the same pending input. Optional-presence Nouls and intent, tool and
+outcome Choices do not receive this input recheck.
+
+### Continue a paused input
 
 If a required input cannot be resolved, the agent can return a question with
 outcome `asking` and save a paused tool call. Supply the answer through another

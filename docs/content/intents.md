@@ -7,7 +7,7 @@ it can end with. For example, a greeting can reply without a tool, while a
 calculation can call a function and use its result.
 
 For a new request, the decision model chooses among your registered intent names
-using their descriptions and the conversation state. v0.1.1 handles one intent per
+using their descriptions and the conversation state. v0.1.2 handles one intent per
 message. That intent may involve several tool calls; multi-intent and multi-agent
 workflows are planned for future versions.
 
@@ -15,6 +15,32 @@ Write distinct descriptions so the available categories are easy to distinguish.
 Overlapping descriptions can make model selection ambiguous.
 
 ## Configuration
+
+### Context and built-in execution guidance
+
+In v0.1.2, you do not need to repeat generic multi-call instructions in every
+intent. The framework supplies guidance to select the next requested operation,
+follow requested order and dependencies, consider completed calls and stop when
+no supported operation remains. Tool validation stays inside your functions.
+
+Keep `context` focused on what each tool does, when to use it, and application
+rules such as lookup-before-cancellation. For a calculator, for example:
+
+```python
+context = (
+    "add(a, b) adds two operands; subtract(a, b) subtracts b from a; "
+    "multiply(a, b) multiplies operands; divide(a, b) divides a by b. "
+    "All operands are numeric."
+)
+```
+
+The framework presents this as `intent.context`, separately from `user_message`
+and `tool_calls_this_turn`. Results are observations, not additional application
+instructions. This guidance does not add tools to the intent or guarantee correct
+model choices. An explicit application rule to call a tool only once still
+constrains that intent's workflow. See [Calculator](calculator.md).
+
+### Intent fields
 
 Import `Intent` from `decisionact`. The dictionary key, such as `"greeting"`, is
 the intent's name. The object describes its behavior:
@@ -224,7 +250,7 @@ holds the selected dictionary key. If intent selection is too uncertain, the
 agent can return a rephrasing request instead; when no intent has been selected,
 `result.intent` remains `None`.
 
-Intent selection uses the model's `min_conf` threshold, which defaults to `0.6`.
+Intent selection uses the model's `min_conf` threshold, which defaults to `0.5`.
 Its Choice record appears in `result.decisions` with step `"1. intent"`, the model's
 answer, confidence, and a low-confidence flag. See [Decision models](models.md)
 for threshold configuration.
