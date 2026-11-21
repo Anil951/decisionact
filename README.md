@@ -1,5 +1,6 @@
 <!--![DecisionAct — Every Action Is a Decision](https://raw.githubusercontent.com/Anil951/decisionact/main/assets/decisionact_white_banner.png) -->
-# <i>DecisionAct</i> <a href="https://pepy.tech/projects/decisionact"><img align="right" src="https://static.pepy.tech/personalized-badge/decisionact?period=total&amp;units=INTERNATIONAL_SYSTEM&amp;left_color=BLACK&amp;right_color=GREEN&amp;left_text=downloads" alt="PyPI Downloads"></a>
+# <i>DecisionAct</i> <a href="https://pepy.tech/projects/decisionact"><img align="right" src="https://static.pepy.tech/personalized-badge/decisionact?period=total&units=NONE&left_color=BLACK&right_color=BLUE&left_text=downloads" alt="PyPI Downloads"></a>
+
 **Every Action Is a Decision**<br>Decision-Model-Driven Execution for Structured Agent Workflows
 
 DecisionAct is a Python agent framework for building task-focused agents with
